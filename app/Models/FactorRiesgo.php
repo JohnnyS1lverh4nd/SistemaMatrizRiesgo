@@ -4,17 +4,16 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
-class Departamento extends Model
+class FactorRiesgo extends Model
 {
     use HasFactory;
+
+    protected $table = 'factores_riesgo';
 
     protected $fillable = [
         'nombre',
         'slug',
-        'direccion',
-        'codigo_referencia',
         'activo',
     ];
 
@@ -23,10 +22,5 @@ class Departamento extends Model
         return [
             'activo' => 'boolean',
         ];
-    }
-
-    public function users(): BelongsToMany
-    {
-        return $this->belongsToMany(User::class, 'user_departamento');
     }
 }
