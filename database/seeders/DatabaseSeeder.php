@@ -15,11 +15,14 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
 {
-    $this->call([
-        RoleSeeder::class,
-        FactorRiesgoSeeder::class,
-         PeriodicidadSeeder::class,
-    ]);
+   $this->call([
+    RoleSeeder::class,
+    FactorRiesgoSeeder::class,
+    PeriodicidadSeeder::class,
+    NivelRiesgoSeeder::class,
+    EscalaNivelSeeder::class,
+    MatrizCalorCeldaSeeder::class,
+]);
 
     User::factory()->create([
         'name' => 'Test User',
