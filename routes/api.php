@@ -7,10 +7,16 @@ use App\Http\Controllers\Api\FactorRiesgoController;
 use App\Http\Controllers\Api\MatrizCalorCeldaController;
 use App\Http\Controllers\Api\NivelRiesgoController;
 use App\Http\Controllers\Api\PeriodicidadController;
+use App\Http\Controllers\Api\RoleController;
+use App\Http\Controllers\Api\UserController;
+use App\Http\Middleware\EnsureUserIsActive;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', EnsureUserIsActive::class])->group(function () {
     Route::get('/user', CurrentUserController::class);
+
+    Route::apiResource('users', UserController::class)->except('destroy');
+    Route::get('/roles', [RoleController::class, 'index']);
 
     Route::get('/departamentos/{departamento}', [DepartamentoController::class, 'show']);
 

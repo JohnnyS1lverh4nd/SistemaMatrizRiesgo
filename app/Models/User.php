@@ -17,6 +17,7 @@ use Laravel\Sanctum\HasApiTokens;
 /**
  * @property int $id
  * @property int|null $role_id
+ * @property bool $activo
  * @property string $name
  * @property string $email
  * @property Carbon|null $email_verified_at
@@ -28,12 +29,22 @@ use Laravel\Sanctum\HasApiTokens;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['name', 'email', 'password', 'role_id'])]
+#[Fillable(['name', 'email', 'password', 'role_id', 'activo'])]
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
     use HasApiTokens, HasFactory, Notifiable;
+
+    /**
+     * Igual que el valor por defecto de la columna, para que un usuario
+     * recién creado lo tenga en memoria sin volver a consultarlo.
+     *
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'activo' => true,
+    ];
 
     /**
      * Get the attributes that should be cast.
@@ -45,6 +56,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'activo' => 'boolean',
         ];
     }
 

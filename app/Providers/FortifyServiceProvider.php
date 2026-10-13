@@ -9,6 +9,7 @@ use App\Models\User;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
@@ -46,6 +47,19 @@ class FortifyServiceProvider extends ServiceProvider
     private function configureActions(): void
     {
         Fortify::resetUserPasswordsUsing(ResetUserPassword::class);
+
+        // Igual que la autenticación por defecto, pero rechaza usuarios desactivados.
+        // Devuelve null (mismo error que credenciales incorrectas) para no revelar
+        // el estado de la cuenta.
+        Fortify::authenticateUsing(function (Request $request): ?User {
+            $user = User::where(Fortify::username(), $request->input(Fortify::username()))->first();
+
+            if ($user === null || ! Hash::check((string) $request->input('password'), $user->password)) {
+                return null;
+            }
+
+            return $user->activo ? $user : null;
+        });
 
         // Las vistas de Fortify están desactivadas: el enlace del correo debe
         // abrir la página de Nuxt, que luego envía el token a POST /reset-password.

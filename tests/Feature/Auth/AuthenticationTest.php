@@ -42,6 +42,30 @@ test('users can not authenticate with an unknown email', function () {
     $this->assertGuest();
 });
 
+test('inactive users can not authenticate', function () {
+    $user = User::factory()->create(['activo' => false]);
+
+    $response = $this->postJson(route('login.store'), [
+        'email' => $user->email,
+        'password' => 'password',
+    ]);
+
+    // Mismo error que con credenciales incorrectas: no se revela el estado de la cuenta.
+    $response->assertUnprocessable()->assertJsonValidationErrors('email');
+    $this->assertGuest();
+});
+
+test('an open session is closed once the user is deactivated', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)->getJson('/api/user')->assertOk();
+
+    $user->update(['activo' => false]);
+
+    $this->actingAs($user->fresh())->getJson('/api/user')->assertUnauthorized();
+    $this->assertGuest('web');
+});
+
 test('users can logout', function () {
     $user = User::factory()->create();
 
