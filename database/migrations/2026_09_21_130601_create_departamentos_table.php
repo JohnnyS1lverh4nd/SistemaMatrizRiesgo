@@ -13,9 +13,8 @@ return new class extends Migration
     {
         Schema::create('departamentos', function (Blueprint $table) {
             $table->id();
-            $table->string('nombre');
-            $table->string('slug')->unique();
             $table->timestamps();
+            // nombre y slug se agregan en 2026_09_21_191747_add_nombre_slug_to_departamentos_table.
         });
     }
 

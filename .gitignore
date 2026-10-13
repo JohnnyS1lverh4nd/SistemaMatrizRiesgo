@@ -42,3 +42,6 @@ yarn-error.log
 /boost.json
 /opencode.json
 /opencode.jsonc
+
+# Cookies de pruebas manuales con curl (contienen sesiones)
+cookies.txt

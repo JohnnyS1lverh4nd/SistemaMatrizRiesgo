@@ -1,19 +1,17 @@
 <?php
 
+use App\Http\Controllers\Api\CurrentUserController;
 use App\Http\Controllers\Api\DepartamentoController;
 use App\Http\Controllers\Api\EscalaNivelController;
 use App\Http\Controllers\Api\FactorRiesgoController;
 use App\Http\Controllers\Api\MatrizCalorCeldaController;
 use App\Http\Controllers\Api\NivelRiesgoController;
 use App\Http\Controllers\Api\PeriodicidadController;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/user', function (Request $request) {
-    return $request->user();
-})->middleware('auth:sanctum');
-
 Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/user', CurrentUserController::class);
+
     Route::get('/departamentos/{departamento}', [DepartamentoController::class, 'show']);
 
     Route::apiResource('factores-riesgo', FactorRiesgoController::class);

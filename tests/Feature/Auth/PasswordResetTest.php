@@ -9,33 +9,56 @@ beforeEach(function () {
     $this->skipUnlessFortifyHas(Features::resetPasswords());
 });
 
-test('reset password link screen can be rendered', function () {
-    $response = $this->get(route('password.request'));
-
-    $response->assertOk();
-});
-
 test('reset password link can be requested', function () {
     Notification::fake();
 
     $user = User::factory()->create();
 
-    $this->post(route('password.email'), ['email' => $user->email]);
+    $this->postJson(route('password.email'), ['email' => $user->email])->assertOk();
 
     Notification::assertSentTo($user, ResetPassword::class);
 });
 
-test('reset password screen can be rendered', function () {
+test('reset link request does not reveal whether an email is registered', function () {
     Notification::fake();
 
     $user = User::factory()->create();
 
-    $this->post(route('password.email'), ['email' => $user->email]);
+    $registrado = $this->postJson(route('password.email'), ['email' => $user->email]);
+    $desconocido = $this->postJson(route('password.email'), ['email' => 'nadie@infotep.test']);
+    // Segunda solicitud inmediata: el broker la limita, pero la respuesta no debe delatarlo.
+    $limitado = $this->postJson(route('password.email'), ['email' => $user->email]);
 
-    Notification::assertSentTo($user, ResetPassword::class, function ($notification) {
-        $response = $this->get(route('password.reset', $notification->token));
+    $registrado->assertOk();
+    $desconocido->assertOk();
+    $limitado->assertOk();
 
-        $response->assertOk();
+    expect($desconocido->json())->toBe($registrado->json())
+        ->and($limitado->json())->toBe($registrado->json());
+
+    Notification::assertSentToTimes($user, ResetPassword::class, 1);
+});
+
+test('reset link request still validates the email format', function () {
+    $this->postJson(route('password.email'), ['email' => 'no-es-un-email'])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('email');
+});
+
+test('reset password link points to the frontend', function () {
+    Notification::fake();
+
+    $user = User::factory()->create();
+
+    $this->postJson(route('password.email'), ['email' => $user->email]);
+
+    Notification::assertSentTo($user, ResetPassword::class, function (ResetPassword $notification) use ($user) {
+        $url = $notification->toMail($user)->actionUrl;
+
+        expect($url)
+            ->toStartWith(config('app.frontend_url').'/restablecer-contrasena?')
+            ->toContain('token='.$notification->token)
+            ->toContain('email='.urlencode($user->email));
 
         return true;
     });
@@ -46,33 +69,53 @@ test('password can be reset with valid token', function () {
 
     $user = User::factory()->create();
 
-    $this->post(route('password.email'), ['email' => $user->email]);
+    $this->postJson(route('password.email'), ['email' => $user->email]);
 
     Notification::assertSentTo($user, ResetPassword::class, function ($notification) use ($user) {
-        $response = $this->post(route('password.update'), [
+        $response = $this->postJson(route('password.update'), [
             'token' => $notification->token,
             'email' => $user->email,
-            'password' => 'password',
-            'password_confirmation' => 'password',
+            'password' => 'nueva-password',
+            'password_confirmation' => 'nueva-password',
         ]);
 
-        $response
-            ->assertSessionHasNoErrors()
-            ->assertRedirect(route('login'));
+        $response->assertOk();
 
         return true;
     });
+
+    $this->postJson(route('login.store'), [
+        'email' => $user->email,
+        'password' => 'nueva-password',
+    ])->assertOk();
+});
+
+test('reset attempt does not reveal whether an email is registered', function () {
+    $user = User::factory()->create();
+
+    $datos = [
+        'token' => 'invalid-token',
+        'password' => 'newpassword123',
+        'password_confirmation' => 'newpassword123',
+    ];
+
+    $registrado = $this->postJson(route('password.update'), [...$datos, 'email' => $user->email]);
+    $desconocido = $this->postJson(route('password.update'), [...$datos, 'email' => 'nadie@infotep.test']);
+
+    $registrado->assertUnprocessable();
+    $desconocido->assertUnprocessable();
+    expect($desconocido->json())->toBe($registrado->json());
 });
 
 test('password cannot be reset with invalid token', function () {
     $user = User::factory()->create();
 
-    $response = $this->post(route('password.update'), [
+    $response = $this->postJson(route('password.update'), [
         'token' => 'invalid-token',
         'email' => $user->email,
         'password' => 'newpassword123',
         'password_confirmation' => 'newpassword123',
     ]);
 
-    $response->assertSessionHasErrors('email');
+    $response->assertUnprocessable()->assertJsonValidationErrors('email');
 });

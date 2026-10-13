@@ -17,8 +17,11 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
-         $middleware->statefulApi();
-         
+        $middleware->statefulApi();
+
+        // La pantalla de login vive en Nuxt; no existe una ruta 'login' en Laravel.
+        $middleware->redirectGuestsTo(fn () => config('app.frontend_url').'/login');
+
         $middleware->web(append: [
             HandleAppearance::class,
             HandleInertiaRequests::class,
