@@ -6,10 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\EscalaNivelResource;
 use App\Models\EscalaNivel;
 use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Http\Response;
 
 class EscalaNivelController extends Controller
 {
-    public function index(): \Illuminate\Http\Resources\Json\AnonymousResourceCollection
+    public function index(): AnonymousResourceCollection
     {
         $this->authorize('viewAny', EscalaNivel::class);
 
@@ -55,7 +57,7 @@ class EscalaNivelController extends Controller
         return new EscalaNivelResource($escalaNivel);
     }
 
-    public function destroy(EscalaNivel $escalaNivel): \Illuminate\Http\Response
+    public function destroy(EscalaNivel $escalaNivel): Response
     {
         $this->authorize('delete', $escalaNivel);
 

@@ -6,10 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\PeriodicidadResource;
 use App\Models\Periodicidad;
 use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Http\Response;
 
 class PeriodicidadController extends Controller
 {
-    public function index(): \Illuminate\Http\Resources\Json\AnonymousResourceCollection
+    public function index(): AnonymousResourceCollection
     {
         $this->authorize('viewAny', Periodicidad::class);
 
@@ -44,7 +46,7 @@ class PeriodicidadController extends Controller
 
         $validated = $request->validate([
             'nombre' => ['sometimes', 'required', 'string', 'max:255'],
-            'slug' => ['sometimes', 'required', 'string', 'max:255', 'unique:periodicidades,slug,' . $periodicidad->id],
+            'slug' => ['sometimes', 'required', 'string', 'max:255', 'unique:periodicidades,slug,'.$periodicidad->id],
             'activo' => ['boolean'],
         ]);
 
@@ -53,7 +55,7 @@ class PeriodicidadController extends Controller
         return new PeriodicidadResource($periodicidad);
     }
 
-    public function destroy(Periodicidad $periodicidad): \Illuminate\Http\Response
+    public function destroy(Periodicidad $periodicidad): Response
     {
         $this->authorize('delete', $periodicidad);
 

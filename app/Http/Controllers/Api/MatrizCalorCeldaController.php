@@ -6,10 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\MatrizCalorCeldaResource;
 use App\Models\MatrizCalorCelda;
 use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class MatrizCalorCeldaController extends Controller
 {
-    public function index(): \Illuminate\Http\Resources\Json\AnonymousResourceCollection
+    public function index(): AnonymousResourceCollection
     {
         $this->authorize('viewAny', MatrizCalorCelda::class);
 

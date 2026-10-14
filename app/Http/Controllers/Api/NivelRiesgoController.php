@@ -6,10 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\NivelRiesgoResource;
 use App\Models\NivelRiesgo;
 use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Http\Response;
 
 class NivelRiesgoController extends Controller
 {
-    public function index(): \Illuminate\Http\Resources\Json\AnonymousResourceCollection
+    public function index(): AnonymousResourceCollection
     {
         $this->authorize('viewAny', NivelRiesgo::class);
 
@@ -45,9 +47,9 @@ class NivelRiesgoController extends Controller
 
         $validated = $request->validate([
             'nombre' => ['sometimes', 'required', 'string', 'max:255'],
-            'slug' => ['sometimes', 'required', 'string', 'max:255', 'unique:niveles_riesgo,slug,' . $nivelRiesgo->id],
+            'slug' => ['sometimes', 'required', 'string', 'max:255', 'unique:niveles_riesgo,slug,'.$nivelRiesgo->id],
             'color' => ['sometimes', 'required', 'string', 'max:7'],
-            'orden' => ['sometimes', 'required', 'integer', 'unique:niveles_riesgo,orden,' . $nivelRiesgo->id],
+            'orden' => ['sometimes', 'required', 'integer', 'unique:niveles_riesgo,orden,'.$nivelRiesgo->id],
         ]);
 
         $nivelRiesgo->update($validated);
@@ -55,7 +57,7 @@ class NivelRiesgoController extends Controller
         return new NivelRiesgoResource($nivelRiesgo);
     }
 
-    public function destroy(NivelRiesgo $nivelRiesgo): \Illuminate\Http\Response
+    public function destroy(NivelRiesgo $nivelRiesgo): Response
     {
         $this->authorize('delete', $nivelRiesgo);
 

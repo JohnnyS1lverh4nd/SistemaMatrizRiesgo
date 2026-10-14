@@ -6,10 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\FactorRiesgoResource;
 use App\Models\FactorRiesgo;
 use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Http\Response;
 
 class FactorRiesgoController extends Controller
 {
-    public function index(): \Illuminate\Http\Resources\Json\AnonymousResourceCollection
+    public function index(): AnonymousResourceCollection
     {
         $this->authorize('viewAny', FactorRiesgo::class);
 
@@ -44,7 +46,7 @@ class FactorRiesgoController extends Controller
 
         $validated = $request->validate([
             'nombre' => ['sometimes', 'required', 'string', 'max:255'],
-            'slug' => ['sometimes', 'required', 'string', 'max:255', 'unique:factores_riesgo,slug,' . $factorRiesgo->id],
+            'slug' => ['sometimes', 'required', 'string', 'max:255', 'unique:factores_riesgo,slug,'.$factorRiesgo->id],
             'activo' => ['boolean'],
         ]);
 
@@ -53,7 +55,7 @@ class FactorRiesgoController extends Controller
         return new FactorRiesgoResource($factorRiesgo);
     }
 
-    public function destroy(FactorRiesgo $factorRiesgo): \Illuminate\Http\Response
+    public function destroy(FactorRiesgo $factorRiesgo): Response
     {
         $this->authorize('delete', $factorRiesgo);
 
