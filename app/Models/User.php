@@ -80,4 +80,17 @@ class User extends Authenticatable
     {
         return in_array($this->role?->slug, ['administrador', 'auditor', 'direccion'], true);
     }
+
+    /**
+     * Crear y editar matrices de un departamento: el Administrador en todos;
+     * el Encargado de Departamento solo en los suyos.
+     */
+    public function puedeGestionarMatricesDe(Departamento $departamento): bool
+    {
+        return match ($this->role?->slug) {
+            'administrador' => true,
+            'encargado-departamento' => $this->departamentos->contains($departamento->id),
+            default => false,
+        };
+    }
 }

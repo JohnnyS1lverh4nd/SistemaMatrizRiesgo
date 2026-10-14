@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Proceso extends Model
 {
@@ -35,5 +36,11 @@ class Proceso extends Model
     public function departamento(): BelongsTo
     {
         return $this->belongsTo(Departamento::class);
+    }
+
+    /** @return HasMany<Matriz, $this> */
+    public function matrices(): HasMany
+    {
+        return $this->hasMany(Matriz::class);
     }
 }

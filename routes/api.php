@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\DepartamentoController;
 use App\Http\Controllers\Api\EscalaNivelController;
 use App\Http\Controllers\Api\FactorRiesgoController;
 use App\Http\Controllers\Api\MatrizCalorCeldaController;
+use App\Http\Controllers\Api\MatrizController;
 use App\Http\Controllers\Api\NivelRiesgoController;
 use App\Http\Controllers\Api\PeriodicidadController;
 use App\Http\Controllers\Api\ProcesoController;
@@ -24,6 +25,14 @@ Route::middleware(['auth:sanctum', EnsureUserIsActive::class])->group(function (
     Route::apiResource('departamentos.procesos', ProcesoController::class)
         ->shallow()
         ->except('destroy');
+
+    // Ediciones de matriz. destroy solo descarta borradores (soft delete).
+    Route::apiResource('procesos.matrices', MatrizController::class)
+        ->shallow()
+        ->parameters(['matrices' => 'matriz']);
+    Route::post('/matrices/{matriz}/publicar', [MatrizController::class, 'publicar']);
+    Route::post('/matrices/{matriz}/archivar', [MatrizController::class, 'archivar']);
+    Route::post('/matrices/{matriz}/clonar', [MatrizController::class, 'clonar']);
 
     // El nombre del parámetro debe coincidir con el argumento del controlador
     // ($factorRiesgo -> factor_riesgo); si no, Laravel inyecta un modelo vacío.

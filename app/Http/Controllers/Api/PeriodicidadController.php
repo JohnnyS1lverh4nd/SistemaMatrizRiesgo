@@ -7,6 +7,7 @@ use App\Http\Resources\PeriodicidadResource;
 use App\Models\Periodicidad;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Str;
 
 /**
  * Periodicidades: no se borran (riesgos históricos las referencian).
@@ -37,9 +38,14 @@ class PeriodicidadController extends Controller
     {
         $this->authorize('create', Periodicidad::class);
 
+        // Igual que departamentos y procesos: sin slug, se genera del nombre.
+        if (! $request->filled('slug') && is_string($request->input('nombre'))) {
+            $request->merge(['slug' => Str::slug($request->input('nombre'))]);
+        }
+
         $validated = $request->validate([
             'nombre' => ['required', 'string', 'max:255'],
-            'slug' => ['required', 'string', 'max:255', 'unique:periodicidades,slug'],
+            'slug' => ['required', 'string', 'max:255', 'regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/', 'unique:periodicidades,slug'],
             'activo' => ['boolean'],
         ]);
 

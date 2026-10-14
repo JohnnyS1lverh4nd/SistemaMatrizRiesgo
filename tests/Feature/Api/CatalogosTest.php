@@ -111,6 +111,17 @@ test('factors and periodicities can still be created by the admin', function (st
     'periodicidades' => ['/api/periodicidades', Periodicidad::class],
 ]);
 
+test('factor and periodicity slug is generated from the name when omitted', function (string $uri) {
+    $this->actingAs($this->admin)->postJson($uri, ['nombre' => 'Político Económico'])
+        ->assertCreated()
+        ->assertJsonPath('data.slug', 'politico-economico');
+
+    // Un nombre que genera un slug existente se rechaza con 422, no con 500.
+    $this->actingAs($this->admin)->postJson($uri, ['nombre' => 'Político-Económico'])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('slug');
+})->with(['/api/factores-riesgo', '/api/periodicidades']);
+
 // --- Niveles y escalas: estructura fija -----------------------------------------
 
 test('risk levels and scales can not be created', function (string $uri, array $datos) {

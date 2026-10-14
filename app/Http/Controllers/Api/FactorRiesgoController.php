@@ -7,6 +7,7 @@ use App\Http\Resources\FactorRiesgoResource;
 use App\Models\FactorRiesgo;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Str;
 
 /**
  * Factores de riesgo: no se borran (riesgos históricos los referencian).
@@ -37,9 +38,14 @@ class FactorRiesgoController extends Controller
     {
         $this->authorize('create', FactorRiesgo::class);
 
+        // Igual que departamentos y procesos: sin slug, se genera del nombre.
+        if (! $request->filled('slug') && is_string($request->input('nombre'))) {
+            $request->merge(['slug' => Str::slug($request->input('nombre'))]);
+        }
+
         $validated = $request->validate([
             'nombre' => ['required', 'string', 'max:255'],
-            'slug' => ['required', 'string', 'max:255', 'unique:factores_riesgo,slug'],
+            'slug' => ['required', 'string', 'max:255', 'regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/', 'unique:factores_riesgo,slug'],
             'activo' => ['boolean'],
         ]);
 

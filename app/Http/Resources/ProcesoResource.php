@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Models\Matriz;
 use App\Models\Proceso;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -19,6 +20,10 @@ class ProcesoResource extends JsonResource
             'slug' => $this->slug,
             'descripcion' => $this->descripcion,
             'activo' => $this->activo,
+            // Para que el frontend muestre u oculte acciones; la API vuelve a comprobarlo.
+            'permisos' => [
+                'crear_matriz' => $request->user()?->can('create', [Matriz::class, $this->resource]) ?? false,
+            ],
         ];
     }
 }
