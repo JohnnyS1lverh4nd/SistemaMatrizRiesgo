@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\EscalaTipo;
+use App\Models\Concerns\Auditable;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -10,6 +11,8 @@ use Illuminate\Database\Eloquent\Model;
  */
 class EscalaNivel extends Model
 {
+    use Auditable;
+
     protected $table = 'escala_niveles';
 
     protected $fillable = [

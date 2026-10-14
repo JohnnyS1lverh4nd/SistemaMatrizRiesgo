@@ -16,6 +16,7 @@ class PeriodicidadResource extends JsonResource
             'id' => $this->id,
             'nombre' => $this->nombre,
             'slug' => $this->slug,
+            'frecuencia_dias' => $this->frecuencia_dias,
             'activo' => $this->activo,
         ];
     }

@@ -28,7 +28,7 @@ class RiesgoService
             $this->fijarNivelCalculado($riesgo);
             $riesgo->save();
 
-            $riesgo->factores()->sync($datos['factor_ids'] ?? []);
+            $this->sincronizarFactores($riesgo, $datos['factor_ids'] ?? []);
 
             return $riesgo;
         });
@@ -46,7 +46,7 @@ class RiesgoService
             $riesgo->save();
 
             if (array_key_exists('factor_ids', $datos)) {
-                $riesgo->factores()->sync($datos['factor_ids']);
+                $this->sincronizarFactores($riesgo, $datos['factor_ids']);
             }
 
             return $riesgo;
@@ -69,6 +69,19 @@ class RiesgoService
 
             $copia->factores()->sync($original->factores->pluck('id'));
         });
+    }
+
+    /**
+     * La tabla riesgo_factor no dispara eventos de modelo: el cambio se audita aquí.
+     *
+     * @param  array<int, int>  $factorIds
+     */
+    private function sincronizarFactores(Riesgo $riesgo, array $factorIds): void
+    {
+        $antes = $riesgo->factores()->pluck('factores_riesgo.id')->map(fn ($id) => (int) $id)->all();
+        $riesgo->factores()->sync($factorIds);
+
+        Auditor::registrarRelacion('riesgo', $riesgo->id, 'factor_ids', $antes, array_map('intval', $factorIds));
     }
 
     private function fijarNivelCalculado(Riesgo $riesgo): void

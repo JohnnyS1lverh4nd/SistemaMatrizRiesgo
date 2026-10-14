@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\Auditable;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -34,7 +35,7 @@ use Laravel\Sanctum\HasApiTokens;
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasApiTokens, HasFactory, Notifiable;
+    use Auditable, HasApiTokens, HasFactory, Notifiable;
 
     /**
      * Igual que el valor por defecto de la columna, para que un usuario
@@ -58,6 +59,27 @@ class User extends Authenticatable
             'password' => 'hashed',
             'activo' => 'boolean',
         ];
+    }
+
+    public function nombreEntidadAuditoria(): string
+    {
+        return 'usuario';
+    }
+
+    /**
+     * La auditoría registra que la contraseña cambió, nunca su valor (ni el hash).
+     *
+     * @return list<string>
+     */
+    protected function camposSensibles(): array
+    {
+        return ['password'];
+    }
+
+    /** @return list<string> */
+    protected function camposExcluidosDeAuditoria(): array
+    {
+        return ['remember_token', 'two_factor_secret', 'two_factor_recovery_codes'];
     }
 
     /** @return BelongsTo<Role, $this> */

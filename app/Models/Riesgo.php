@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\EstadoMatriz;
 use App\Enums\EstadoTratamiento;
+use App\Models\Concerns\Auditable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -29,7 +30,7 @@ use LogicException;
  */
 class Riesgo extends Model
 {
-    use SoftDeletes;
+    use Auditable, SoftDeletes;
 
     /**
      * nivel_calculado_id, orden y riesgo_origen_id no son asignables:

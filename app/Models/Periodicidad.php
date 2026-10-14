@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\Auditable;
 use Illuminate\Database\Eloquent\Model;
 
 class Periodicidad extends Model
 {
+    use Auditable;
+
     protected $table = 'periodicidades';
 
     /**
@@ -20,6 +23,7 @@ class Periodicidad extends Model
     protected $fillable = [
         'nombre',
         'slug',
+        'frecuencia_dias',
         'activo',
     ];
 
@@ -27,6 +31,7 @@ class Periodicidad extends Model
     {
         return [
             'activo' => 'boolean',
+            'frecuencia_dias' => 'integer',
         ];
     }
 }

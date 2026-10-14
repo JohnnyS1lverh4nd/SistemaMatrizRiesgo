@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\EstadoMatriz;
+use App\Models\Concerns\Auditable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -25,7 +26,7 @@ use LogicException;
  */
 class Matriz extends Model
 {
-    use SoftDeletes;
+    use Auditable, SoftDeletes;
 
     protected $table = 'matrices';
 
@@ -88,6 +89,24 @@ class Matriz extends Model
                 throw new LogicException("Solo se pueden descartar borradores; la edición {$matriz->id} está {$matriz->estado->value}.");
             }
         });
+    }
+
+    /**
+     * Nombres de negocio en la auditoría: clonado, publicado, archivado.
+     *
+     * @param  array<string, mixed>  $cambios
+     */
+    protected function eventoAuditoria(string $evento, array $cambios): string
+    {
+        if ($evento === 'creado' && ($cambios['edicion_anterior_id'] ?? null) !== null) {
+            return 'clonado';
+        }
+
+        return match ($cambios['estado'] ?? null) {
+            EstadoMatriz::Vigente->value => 'publicado',
+            EstadoMatriz::Archivada->value => 'archivado',
+            default => $evento,
+        };
     }
 
     /** @return BelongsTo<Proceso, $this> */

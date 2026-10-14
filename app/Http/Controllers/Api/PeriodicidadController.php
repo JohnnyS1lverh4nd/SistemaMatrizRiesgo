@@ -46,6 +46,8 @@ class PeriodicidadController extends Controller
         $validated = $request->validate([
             'nombre' => ['required', 'string', 'max:255'],
             'slug' => ['required', 'string', 'max:255', 'regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/', 'unique:periodicidades,slug'],
+            // Cada cuántos días toca seguimiento; null = sin plazo ("Cuando ocurra").
+            'frecuencia_dias' => ['nullable', 'integer', 'min:1', 'max:3650'],
             'activo' => ['boolean'],
         ]);
 
@@ -68,6 +70,8 @@ class PeriodicidadController extends Controller
         $validated = $request->validate([
             'nombre' => ['sometimes', 'required', 'string', 'max:255'],
             'slug' => ['sometimes', 'required', 'string', 'max:255', 'unique:periodicidades,slug,'.$periodicidad->id],
+            // Cada cuántos días toca seguimiento; null = sin plazo ("Cuando ocurra").
+            'frecuencia_dias' => ['nullable', 'integer', 'min:1', 'max:3650'],
             'activo' => ['boolean'],
         ]);
 

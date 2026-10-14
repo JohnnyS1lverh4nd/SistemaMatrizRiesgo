@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\EstadoTratamiento;
+use App\Models\Concerns\Auditable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -25,6 +26,8 @@ use LogicException;
  */
 class Seguimiento extends Model
 {
+    use Auditable;
+
     /**
      * Ningún campo es asignable desde fuera: SeguimientoService fija cada
      * valor (usuario de la sesión, estados, anulación).
@@ -63,6 +66,14 @@ class Seguimiento extends Model
         static::deleting(function (Seguimiento $seguimiento) {
             throw new LogicException("El seguimiento {$seguimiento->id} es histórico: no se elimina; anúlelo con un motivo.");
         });
+    }
+
+    /**
+     * @param  array<string, mixed>  $cambios
+     */
+    protected function eventoAuditoria(string $evento, array $cambios): string
+    {
+        return $evento === 'actualizado' && array_key_exists('anulado_at', $cambios) ? 'anulado' : $evento;
     }
 
     /** @return BelongsTo<Riesgo, $this> */

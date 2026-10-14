@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AuditoriaController;
 use App\Http\Controllers\Api\CurrentUserController;
 use App\Http\Controllers\Api\DepartamentoController;
 use App\Http\Controllers\Api\EscalaNivelController;
@@ -10,6 +11,7 @@ use App\Http\Controllers\Api\MatrizController;
 use App\Http\Controllers\Api\NivelRiesgoController;
 use App\Http\Controllers\Api\PeriodicidadController;
 use App\Http\Controllers\Api\ProcesoController;
+use App\Http\Controllers\Api\ReporteController;
 use App\Http\Controllers\Api\RiesgoController;
 use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\SeguimientoController;
@@ -48,6 +50,16 @@ Route::middleware(['auth:sanctum', EnsureUserIsActive::class])->group(function (
         ->only(['index', 'store', 'show']);
     Route::post('/seguimientos/{seguimiento}/anular', [SeguimientoController::class, 'anular']);
     Route::get('/evidencias/{evidencia}/descargar', [EvidenciaController::class, 'descargar']);
+
+    // Dashboard y reportes: siempre dentro del alcance del usuario.
+    Route::get('/dashboard', [ReporteController::class, 'dashboard']);
+    Route::get('/reportes/riesgos', [ReporteController::class, 'riesgos']);
+    Route::get('/matrices/{matriz}/comparar/{otra}', [ReporteController::class, 'comparar']);
+
+    // Auditoría: solo lectura (los registros los crea el sistema).
+    Route::get('/auditoria', [AuditoriaController::class, 'index']);
+    Route::get('/riesgos/{riesgo}/historial', [AuditoriaController::class, 'riesgo']);
+    Route::get('/matrices/{matriz}/historial', [AuditoriaController::class, 'matriz']);
 
     // El nombre del parámetro debe coincidir con el argumento del controlador
     // ($factorRiesgo -> factor_riesgo); si no, Laravel inyecta un modelo vacío.
