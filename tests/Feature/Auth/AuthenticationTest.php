@@ -89,6 +89,7 @@ test('users are rate limited', function () {
 });
 
 test('guests visiting protected web routes are redirected to the frontend login', function () {
-    $this->get('/settings/profile')
+    // Ruta web de Fortify protegida con 'auth', pedida desde el navegador (no JSON).
+    $this->get(route('password.confirmation'))
         ->assertRedirect(config('app.frontend_url').'/login');
 });

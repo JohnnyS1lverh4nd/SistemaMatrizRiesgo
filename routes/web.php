@@ -1,11 +1,8 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-
-Route::inertia('/', 'Welcome')->name('home');
-
-Route::middleware(['auth', 'verified'])->group(function () {
-    Route::inertia('dashboard', 'Dashboard')->name('dashboard');
-});
-
-require __DIR__.'/settings.php';
+/*
+ * Laravel es solo la API: la interfaz vive en el frontend Nuxt.
+ * Las rutas web que existen las registran Fortify (login, logout,
+ * recuperación de contraseña) y Sanctum (/sanctum/csrf-cookie), porque
+ * necesitan la sesión y la protección CSRF del grupo 'web'.
+ */

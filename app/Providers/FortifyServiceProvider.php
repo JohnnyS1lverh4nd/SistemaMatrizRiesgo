@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Actions\Fortify\ResetUserPassword;
+use App\Actions\Fortify\UpdateUserPassword;
 use App\Http\Responses\FailedPasswordResetResponse;
 use App\Http\Responses\PasswordResetLinkRequestedResponse;
 use App\Models\User;
@@ -47,6 +48,7 @@ class FortifyServiceProvider extends ServiceProvider
     private function configureActions(): void
     {
         Fortify::resetUserPasswordsUsing(ResetUserPassword::class);
+        Fortify::updateUserPasswordsUsing(UpdateUserPassword::class);
 
         // Igual que la autenticación por defecto, pero rechaza usuarios desactivados.
         // Devuelve null (mismo error que credenciales incorrectas) para no revelar
