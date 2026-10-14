@@ -3,13 +3,13 @@
 namespace App\Models;
 
 use App\Enums\EscalaTipo;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @property EscalaTipo $tipo Cast a enum (ver casts()); Larastan no lo infiere solo.
+ */
 class EscalaNivel extends Model
 {
-    use HasFactory;
-
     protected $table = 'escala_niveles';
 
     protected $fillable = [
@@ -19,6 +19,9 @@ class EscalaNivel extends Model
         'descripcion',
     ];
 
+    /**
+     * @return array<string, string>
+     */
     protected function casts(): array
     {
         return [

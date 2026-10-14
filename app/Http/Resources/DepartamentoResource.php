@@ -2,11 +2,14 @@
 
 namespace App\Http\Resources;
 
+use App\Models\Departamento;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
+/** @mixin Departamento */
 class DepartamentoResource extends JsonResource
 {
+    /** @return array<string, mixed> */
     public function toArray(Request $request): array
     {
         return [

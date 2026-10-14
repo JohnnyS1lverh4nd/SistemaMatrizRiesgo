@@ -3,15 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Departamento extends Model
 {
-    use HasFactory;
-
     protected $fillable = [
         'nombre',
         'slug',
@@ -27,11 +24,13 @@ class Departamento extends Model
         ];
     }
 
+    /** @return BelongsToMany<User, $this> */
     public function users(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'user_departamento');
     }
 
+    /** @return HasMany<Proceso, $this> */
     public function procesos(): HasMany
     {
         return $this->hasMany(Proceso::class);
@@ -39,6 +38,8 @@ class Departamento extends Model
 
     /**
      * Departamentos que el usuario puede consultar (ver DepartamentoPolicy::view).
+     *
+     * @param  Builder<Departamento>  $query
      */
     public function scopeVisiblesPara(Builder $query, User $user): void
     {

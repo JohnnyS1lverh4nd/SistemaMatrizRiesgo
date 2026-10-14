@@ -22,6 +22,7 @@ class Proceso extends Model
         ];
     }
 
+    /** @return BelongsTo<Departamento, $this> */
     public function departamento(): BelongsTo
     {
         return $this->belongsTo(Departamento::class);

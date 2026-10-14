@@ -8,6 +8,7 @@ use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
+use LogicException;
 
 /**
  * Actualización parcial: solo se validan y cambian los campos enviados.
@@ -65,6 +66,13 @@ class UpdateUserRequest extends FormRequest
 
     private function usuario(): User
     {
-        return $this->route('user');
+        $usuario = $this->route('user');
+
+        // Solo ocurriría si se usara esta Request en una ruta sin {user}.
+        if (! $usuario instanceof User) {
+            throw new LogicException('UpdateUserRequest requiere el parámetro de ruta {user}.');
+        }
+
+        return $usuario;
     }
 }
