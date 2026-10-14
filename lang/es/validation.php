@@ -173,6 +173,7 @@ return [
     'attributes' => [
         'name' => 'nombre',
         'nombre' => 'nombre',
+        'departamento' => 'departamento',
         'email' => 'correo electrónico',
         'password' => 'contraseña',
         'password_confirmation' => 'confirmación de contraseña',

@@ -22,6 +22,25 @@ Departamento (unidad responsable; usuarios asignados)
 - **Ediciones**: cada pestaña del Excel es una edición o periodo ("Edición 3",
   "ENERO-MARZO 2026", "ABRIL-JUNIO 2026"). Se versionarán en la Fase 3.
 
+## API
+
+| Endpoint                                         | Quién                                      |
+|--------------------------------------------------|--------------------------------------------|
+| `GET /api/departamentos` (`?activo=1\|0`)         | Todos; los encargados solo ven los suyos   |
+| `GET /api/departamentos/{id}`                    | Quien pueda ver ese departamento           |
+| `POST /api/departamentos`, `PUT /api/departamentos/{id}` | Administrador                      |
+| `GET /api/departamentos/{id}/procesos` (`?activo`) | Quien pueda ver el departamento          |
+| `GET /api/procesos/{id}`                         | Quien pueda ver su departamento            |
+| `POST /api/departamentos/{id}/procesos`, `PUT /api/procesos/{id}` | Administrador             |
+
+- No hay `DELETE`: se retira con `{ "activo": false }`.
+- `slug` es opcional al crear (se genera del nombre); en edición solo cambia si
+  se envía. En procesos es único **dentro** del departamento.
+- Un proceso no cambia de departamento (`departamento_id` se ignora al editar)
+  y no se crean procesos en departamentos inactivos.
+- La visibilidad de un proceso se delega en `DepartamentoPolicy::view`, y los
+  listados usan `Departamento::visiblesPara()`: una sola regla de alcance.
+
 ## Código del formulario
 
 `RT-01-NI-ONA-156` ("Edición 1") es idéntico en todos los archivos: es el

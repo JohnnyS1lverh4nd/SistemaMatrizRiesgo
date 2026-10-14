@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\FactorRiesgoController;
 use App\Http\Controllers\Api\MatrizCalorCeldaController;
 use App\Http\Controllers\Api\NivelRiesgoController;
 use App\Http\Controllers\Api\PeriodicidadController;
+use App\Http\Controllers\Api\ProcesoController;
 use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Middleware\EnsureUserIsActive;
@@ -18,8 +19,11 @@ Route::middleware(['auth:sanctum', EnsureUserIsActive::class])->group(function (
     Route::apiResource('users', UserController::class)->except('destroy');
     Route::get('/roles', [RoleController::class, 'index']);
 
-    Route::get('/departamentos', [DepartamentoController::class, 'index']);
-    Route::get('/departamentos/{departamento}', [DepartamentoController::class, 'show']);
+    // Estructura organizativa: sin destroy, se desactiva con activo=false.
+    Route::apiResource('departamentos', DepartamentoController::class)->except('destroy');
+    Route::apiResource('departamentos.procesos', ProcesoController::class)
+        ->shallow()
+        ->except('destroy');
 
     // El nombre del parámetro debe coincidir con el argumento del controlador
     // ($factorRiesgo -> factor_riesgo); si no, Laravel inyecta un modelo vacío.
