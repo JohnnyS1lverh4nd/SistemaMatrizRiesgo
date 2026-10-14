@@ -69,4 +69,13 @@ class User extends Authenticatable
     {
         return $this->belongsToMany(Departamento::class, 'user_departamento');
     }
+
+    /**
+     * Administrador, Auditor y Dirección consultan todos los departamentos;
+     * los encargados solo los asignados. Fuente única para la Policy y los listados.
+     */
+    public function puedeConsultarTodosLosDepartamentos(): bool
+    {
+        return in_array($this->role?->slug, ['administrador', 'auditor', 'direccion'], true);
+    }
 }

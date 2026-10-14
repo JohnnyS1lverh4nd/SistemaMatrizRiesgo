@@ -18,6 +18,7 @@ Route::middleware(['auth:sanctum', EnsureUserIsActive::class])->group(function (
     Route::apiResource('users', UserController::class)->except('destroy');
     Route::get('/roles', [RoleController::class, 'index']);
 
+    Route::get('/departamentos', [DepartamentoController::class, 'index']);
     Route::get('/departamentos/{departamento}', [DepartamentoController::class, 'show']);
 
     Route::apiResource('factores-riesgo', FactorRiesgoController::class);

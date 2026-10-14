@@ -64,6 +64,59 @@ test('users without role can not view a departamento', function () {
         ->assertForbidden();
 });
 
+// --- Listado -----------------------------------------------------------------
+
+test('guests can not list departamentos', function () {
+    $this->getJson('/api/departamentos')->assertUnauthorized();
+});
+
+test('roles with global read access list every departamento', function (string $rol) {
+    $this->actingAs(usuarioConRol($rol))
+        ->getJson('/api/departamentos')
+        ->assertOk()
+        ->assertJsonCount(2, 'data')
+        // Ordenados por nombre.
+        ->assertJsonPath('data.0.slug', 'admision')
+        ->assertJsonPath('data.1.slug', 'compras')
+        ->assertJsonStructure(['data' => [['id', 'nombre', 'slug', 'direccion', 'codigo_referencia', 'activo']]]);
+})->with(['administrador', 'auditor', 'direccion']);
+
+test('encargados only list their assigned departamentos', function (string $rol) {
+    $user = usuarioConRol($rol);
+    $user->departamentos()->attach($this->departamento);
+
+    $this->actingAs($user)
+        ->getJson('/api/departamentos')
+        ->assertOk()
+        ->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.id', $this->departamento->id);
+})->with(['encargado-departamento', 'encargado-seguimiento']);
+
+test('users without role list no departamentos', function () {
+    $this->actingAs(User::factory()->create())
+        ->getJson('/api/departamentos')
+        ->assertOk()
+        ->assertJsonCount(0, 'data');
+});
+
+test('departamentos can be filtered by active status', function () {
+    Departamento::create(['nombre' => 'Archivo', 'slug' => 'archivo', 'activo' => false]);
+    $admin = usuarioConRol('administrador');
+
+    $this->actingAs($admin)->getJson('/api/departamentos')->assertJsonCount(3, 'data');
+    $this->actingAs($admin)->getJson('/api/departamentos?activo=1')->assertJsonCount(2, 'data');
+    $this->actingAs($admin)->getJson('/api/departamentos?activo=0')
+        ->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.slug', 'archivo');
+});
+
+test('active filter rejects invalid values', function () {
+    $this->actingAs(usuarioConRol('administrador'))
+        ->getJson('/api/departamentos?activo=quizas')
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('activo');
+});
+
 test('missing departamento returns not found', function () {
     $this->actingAs(usuarioConRol('administrador'))
         ->getJson('/api/departamentos/9999')

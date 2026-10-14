@@ -13,6 +13,9 @@ class DepartamentoResource extends JsonResource
             'id' => $this->id,
             'nombre' => $this->nombre,
             'slug' => $this->slug,
+            'direccion' => $this->direccion,
+            'codigo_referencia' => $this->codigo_referencia,
+            'activo' => $this->activo,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

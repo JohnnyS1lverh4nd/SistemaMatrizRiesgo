@@ -24,7 +24,7 @@ class DepartamentoPolicy
     /**
      * Ver el listado de departamentos.
      * Cualquier rol autenticado puede listar; el filtrado de
-     * "solo los suyos" para el Encargado se hace en el controlador,
+     * "solo los suyos" se hace con Departamento::visiblesPara(),
      * no aquí (view() decide sobre UN registro puntual).
      */
     public function viewAny(User $user): bool
@@ -38,7 +38,7 @@ class DepartamentoPolicy
     public function view(User $user, Departamento $departamento): bool
     {
         // Auditor y Dirección/Gerencia: solo consulta, pero de todo.
-        if (in_array($user->role?->slug, ['auditor', 'direccion'], true)) {
+        if ($user->puedeConsultarTodosLosDepartamentos()) {
             return true;
         }
 
