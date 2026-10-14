@@ -30,9 +30,13 @@ return [
     | to expire immediately when the browser is closed then you may
     | indicate that via the expire_on_close configuration option.
     |
+    | SistemaMatrizRiesgo: 4 minutos de inactividad (requisito institucional).
+    | El frontend lee este valor desde /api/user (meta.sesion_minutos) para
+    | mostrar el aviso de cierre; no debe duplicarse en Nuxt.
+    |
     */
 
-    'lifetime' => (int) env('SESSION_LIFETIME', 120),
+    'lifetime' => (int) env('SESSION_LIFETIME', 4),
 
     'expire_on_close' => env('SESSION_EXPIRE_ON_CLOSE', false),
 

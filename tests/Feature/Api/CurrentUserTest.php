@@ -44,7 +44,22 @@ test('authenticated user is returned with role and assigned departamentos', func
                     ['id' => $compras->id, 'nombre' => 'Compras', 'slug' => 'compras'],
                 ],
             ],
+            'meta' => [
+                'sesion_minutos' => 4,
+            ],
         ]);
+});
+
+test('session lifetime defaults to four minutes of inactivity', function () {
+    // phpunit.xml no define SESSION_LIFETIME: se comprueba el valor por defecto.
+    expect(config('session.lifetime'))->toBe(4);
+});
+
+test('session lifetime sent to the frontend follows the configuration', function () {
+    config(['session.lifetime' => 15]);
+
+    $this->actingAs(User::factory()->create())->getJson('/api/user')
+        ->assertJsonPath('meta.sesion_minutos', 15);
 });
 
 test('user without role returns null role and empty departamentos', function () {
