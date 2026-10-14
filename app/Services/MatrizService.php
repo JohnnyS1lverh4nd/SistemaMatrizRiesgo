@@ -6,6 +6,7 @@ use App\Enums\EstadoMatriz;
 use App\Models\Matriz;
 use App\Models\Proceso;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Ciclo de vida de las ediciones de matriz. Cada operación que toca varias
@@ -13,13 +14,27 @@ use Illuminate\Support\Facades\DB;
  */
 class MatrizService
 {
+    public function __construct(private readonly RiesgoService $riesgos) {}
+
     /**
      * Publica un borrador. La vigente anterior del mismo proceso se archiva
      * en la misma transacción: nunca hay dos vigentes ni cero por un fallo
      * intermedio.
+     *
+     * @throws ValidationException si hay riesgos sin evaluar
      */
     public function publicar(Matriz $matriz): Matriz
     {
+        $sinEvaluar = $matriz->riesgos()->where(fn ($q) => $q->whereNull('probabilidad')->orWhereNull('impacto'))->count();
+
+        if ($sinEvaluar > 0) {
+            throw ValidationException::withMessages([
+                'riesgos' => $sinEvaluar === 1
+                    ? 'Hay 1 riesgo sin evaluar (probabilidad e impacto). Evalúelo antes de publicar.'
+                    : "Hay {$sinEvaluar} riesgos sin evaluar (probabilidad e impacto). Evalúelos antes de publicar.",
+            ]);
+        }
+
         return DB::transaction(function () use ($matriz) {
             // Bloquea el proceso para serializar publicaciones simultáneas.
             Proceso::whereKey($matriz->proceso_id)->lockForUpdate()->first();
@@ -59,8 +74,8 @@ class MatrizService
                 'edicion_anterior_id' => $origen->id,
             ]);
 
-            // Fase 4: aquí se copiarán los riesgos del origen, enlazando cada
-            // copia con su riesgo original para poder comparar ediciones (RF-5).
+            // Cada riesgo copiado queda enlazado con su original (comparación, RF-5).
+            $this->riesgos->copiar($origen, $copia);
 
             return $copia;
         });

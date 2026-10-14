@@ -85,6 +85,19 @@ class User extends Authenticatable
      * Crear y editar matrices de un departamento: el Administrador en todos;
      * el Encargado de Departamento solo en los suyos.
      */
+    /**
+     * Registrar seguimiento y evidencias (RF-4): el Administrador en todos;
+     * los Encargados de Departamento y de Seguimiento en los suyos.
+     */
+    public function puedeRegistrarSeguimientoEn(Departamento $departamento): bool
+    {
+        return match ($this->role?->slug) {
+            'administrador' => true,
+            'encargado-departamento', 'encargado-seguimiento' => $this->departamentos->contains($departamento->id),
+            default => false,
+        };
+    }
+
     public function puedeGestionarMatricesDe(Departamento $departamento): bool
     {
         return match ($this->role?->slug) {

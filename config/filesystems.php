@@ -33,7 +33,10 @@ return [
         'local' => [
             'driver' => 'local',
             'root' => storage_path('app/private'),
-            'serve' => true,
+            // Desactivado: las evidencias solo se descargan por
+            // EvidenciaController, que aplica los permisos por departamento.
+            // Con 'serve' Laravel expondría GET/PUT /storage/{path} con URLs firmadas.
+            'serve' => false,
             'throw' => false,
             'report' => false,
         ],

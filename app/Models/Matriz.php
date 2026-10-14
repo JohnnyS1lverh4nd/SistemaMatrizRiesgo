@@ -108,6 +108,12 @@ class Matriz extends Model
         return $this->hasMany(self::class, 'edicion_anterior_id');
     }
 
+    /** @return HasMany<Riesgo, $this> */
+    public function riesgos(): HasMany
+    {
+        return $this->hasMany(Riesgo::class)->orderBy('orden');
+    }
+
     public function esEditable(): bool
     {
         return $this->estado === EstadoMatriz::Borrador;
