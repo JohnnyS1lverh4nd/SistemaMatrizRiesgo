@@ -17,7 +17,7 @@ class NivelRiesgoSeeder extends Seeder
         ];
 
         foreach ($niveles as $nivel) {
-            NivelRiesgo::updateOrCreate(
+            NivelRiesgo::firstOrCreate(
                 ['slug' => $nivel['slug']],
                 $nivel
             );

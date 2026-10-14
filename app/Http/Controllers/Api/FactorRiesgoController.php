@@ -7,15 +7,30 @@ use App\Http\Resources\FactorRiesgoResource;
 use App\Models\FactorRiesgo;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
-use Illuminate\Http\Response;
 
+/**
+ * Factores de riesgo: no se borran (riesgos históricos los referencian).
+ * Para retirarlos se desactivan con PUT { activo: false }.
+ */
 class FactorRiesgoController extends Controller
 {
-    public function index(): AnonymousResourceCollection
+    /**
+     * Filtro opcional ?activo=1|0 (los formularios solo ofrecen los activos).
+     */
+    public function index(Request $request): AnonymousResourceCollection
     {
         $this->authorize('viewAny', FactorRiesgo::class);
 
-        return FactorRiesgoResource::collection(FactorRiesgo::all());
+        $filtros = $request->validate([
+            'activo' => ['sometimes', 'boolean'],
+        ]);
+
+        $factores = FactorRiesgo::query()
+            ->when(array_key_exists('activo', $filtros), fn ($query) => $query->where('activo', $request->boolean('activo')))
+            ->orderBy('nombre')
+            ->get();
+
+        return FactorRiesgoResource::collection($factores);
     }
 
     public function store(Request $request): FactorRiesgoResource
@@ -53,14 +68,5 @@ class FactorRiesgoController extends Controller
         $factorRiesgo->update($validated);
 
         return new FactorRiesgoResource($factorRiesgo);
-    }
-
-    public function destroy(FactorRiesgo $factorRiesgo): Response
-    {
-        $this->authorize('delete', $factorRiesgo);
-
-        $factorRiesgo->delete();
-
-        return response()->noContent();
     }
 }

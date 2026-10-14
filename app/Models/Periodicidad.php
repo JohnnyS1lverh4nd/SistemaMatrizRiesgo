@@ -8,6 +8,15 @@ class Periodicidad extends Model
 {
     protected $table = 'periodicidades';
 
+    /**
+     * Igual que el valor por defecto de la columna (ver User::$attributes).
+     *
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'activo' => true,
+    ];
+
     protected $fillable = [
         'nombre',
         'slug',

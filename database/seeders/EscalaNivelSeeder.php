@@ -31,7 +31,7 @@ class EscalaNivelSeeder extends Seeder
 
         foreach ($escalas as $tipo => $valores) {
             foreach ($valores as $valor => $nombre) {
-                EscalaNivel::updateOrCreate(
+                EscalaNivel::firstOrCreate(
                     ['tipo' => $tipo, 'valor' => $valor],
                     ['nombre' => $nombre]
                 );

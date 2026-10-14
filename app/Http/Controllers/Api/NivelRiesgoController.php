@@ -7,8 +7,11 @@ use App\Http\Resources\NivelRiesgoResource;
 use App\Models\NivelRiesgo;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
-use Illuminate\Http\Response;
 
+/**
+ * Los cuatro niveles (Bajo, Moderado, Alto, Crítico) son estructura fija de
+ * la matriz de calor: no se crean ni se borran. Solo se edita su presentación.
+ */
 class NivelRiesgoController extends Controller
 {
     public function index(): AnonymousResourceCollection
@@ -16,22 +19,6 @@ class NivelRiesgoController extends Controller
         $this->authorize('viewAny', NivelRiesgo::class);
 
         return NivelRiesgoResource::collection(NivelRiesgo::orderBy('orden')->get());
-    }
-
-    public function store(Request $request): NivelRiesgoResource
-    {
-        $this->authorize('create', NivelRiesgo::class);
-
-        $validated = $request->validate([
-            'nombre' => ['required', 'string', 'max:255'],
-            'slug' => ['required', 'string', 'max:255', 'unique:niveles_riesgo,slug'],
-            'color' => ['required', 'string', 'max:7'],
-            'orden' => ['required', 'integer', 'unique:niveles_riesgo,orden'],
-        ]);
-
-        $nivel = NivelRiesgo::create($validated);
-
-        return new NivelRiesgoResource($nivel);
     }
 
     public function show(NivelRiesgo $nivelRiesgo): NivelRiesgoResource
@@ -45,24 +32,14 @@ class NivelRiesgoController extends Controller
     {
         $this->authorize('update', $nivelRiesgo);
 
+        // slug y orden no se aceptan: identifican el nivel y su gravedad.
         $validated = $request->validate([
             'nombre' => ['sometimes', 'required', 'string', 'max:255'],
-            'slug' => ['sometimes', 'required', 'string', 'max:255', 'unique:niveles_riesgo,slug,'.$nivelRiesgo->id],
-            'color' => ['sometimes', 'required', 'string', 'max:7'],
-            'orden' => ['sometimes', 'required', 'integer', 'unique:niveles_riesgo,orden,'.$nivelRiesgo->id],
+            'color' => ['sometimes', 'required', 'string', 'regex:/^#[0-9A-Fa-f]{6}$/'],
         ]);
 
         $nivelRiesgo->update($validated);
 
         return new NivelRiesgoResource($nivelRiesgo);
-    }
-
-    public function destroy(NivelRiesgo $nivelRiesgo): Response
-    {
-        $this->authorize('delete', $nivelRiesgo);
-
-        $nivelRiesgo->delete();
-
-        return response()->noContent();
     }
 }

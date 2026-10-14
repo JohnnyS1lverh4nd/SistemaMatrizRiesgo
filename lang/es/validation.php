@@ -184,7 +184,6 @@ return [
         'slug' => 'identificador',
         'descripcion' => 'descripción',
         'direccion' => 'dirección',
-        'codigo_referencia' => 'código de referencia',
         'color' => 'color',
         'orden' => 'orden',
         'tipo' => 'tipo',

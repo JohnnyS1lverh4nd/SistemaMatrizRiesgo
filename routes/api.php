@@ -21,10 +21,22 @@ Route::middleware(['auth:sanctum', EnsureUserIsActive::class])->group(function (
     Route::get('/departamentos', [DepartamentoController::class, 'index']);
     Route::get('/departamentos/{departamento}', [DepartamentoController::class, 'show']);
 
-    Route::apiResource('factores-riesgo', FactorRiesgoController::class);
-    Route::apiResource('periodicidades', PeriodicidadController::class);
-    Route::apiResource('niveles-riesgo', NivelRiesgoController::class);
-    Route::apiResource('escalas-nivel', EscalaNivelController::class);
+    // El nombre del parámetro debe coincidir con el argumento del controlador
+    // ($factorRiesgo -> factor_riesgo); si no, Laravel inyecta un modelo vacío.
+    // Sin borrado físico: factores y periodicidades se desactivan (activo=false);
+    // niveles y escalas son estructura fija de la matriz de calor.
+    Route::apiResource('factores-riesgo', FactorRiesgoController::class)
+        ->parameters(['factores-riesgo' => 'factor_riesgo'])
+        ->except('destroy');
+    Route::apiResource('periodicidades', PeriodicidadController::class)
+        ->parameters(['periodicidades' => 'periodicidad'])
+        ->except('destroy');
+    Route::apiResource('niveles-riesgo', NivelRiesgoController::class)
+        ->parameters(['niveles-riesgo' => 'nivel_riesgo'])
+        ->only(['index', 'show', 'update']);
+    Route::apiResource('escalas-nivel', EscalaNivelController::class)
+        ->parameters(['escalas-nivel' => 'escala_nivel'])
+        ->only(['index', 'show', 'update']);
 
     Route::apiResource('matriz-calor-celdas', MatrizCalorCeldaController::class)
         ->only(['index', 'show', 'update']);

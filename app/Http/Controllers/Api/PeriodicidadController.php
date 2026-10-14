@@ -7,15 +7,30 @@ use App\Http\Resources\PeriodicidadResource;
 use App\Models\Periodicidad;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
-use Illuminate\Http\Response;
 
+/**
+ * Periodicidades: no se borran (riesgos históricos las referencian).
+ * Para retirarlas se desactivan con PUT { activo: false }.
+ */
 class PeriodicidadController extends Controller
 {
-    public function index(): AnonymousResourceCollection
+    /**
+     * Filtro opcional ?activo=1|0 (los formularios solo ofrecen las activas).
+     */
+    public function index(Request $request): AnonymousResourceCollection
     {
         $this->authorize('viewAny', Periodicidad::class);
 
-        return PeriodicidadResource::collection(Periodicidad::all());
+        $filtros = $request->validate([
+            'activo' => ['sometimes', 'boolean'],
+        ]);
+
+        $periodicidades = Periodicidad::query()
+            ->when(array_key_exists('activo', $filtros), fn ($query) => $query->where('activo', $request->boolean('activo')))
+            ->orderBy('nombre')
+            ->get();
+
+        return PeriodicidadResource::collection($periodicidades);
     }
 
     public function store(Request $request): PeriodicidadResource
@@ -53,14 +68,5 @@ class PeriodicidadController extends Controller
         $periodicidad->update($validated);
 
         return new PeriodicidadResource($periodicidad);
-    }
-
-    public function destroy(Periodicidad $periodicidad): Response
-    {
-        $this->authorize('delete', $periodicidad);
-
-        $periodicidad->delete();
-
-        return response()->noContent();
     }
 }

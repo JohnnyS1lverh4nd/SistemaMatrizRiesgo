@@ -78,7 +78,7 @@ test('roles with global read access list every departamento', function (string $
         // Ordenados por nombre.
         ->assertJsonPath('data.0.slug', 'admision')
         ->assertJsonPath('data.1.slug', 'compras')
-        ->assertJsonStructure(['data' => [['id', 'nombre', 'slug', 'direccion', 'codigo_referencia', 'activo']]]);
+        ->assertJsonStructure(['data' => [['id', 'nombre', 'slug', 'direccion', 'activo']]]);
 })->with(['administrador', 'auditor', 'direccion']);
 
 test('encargados only list their assigned departamentos', function (string $rol) {

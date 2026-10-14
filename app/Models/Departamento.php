@@ -9,11 +9,19 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Departamento extends Model
 {
+    /**
+     * Igual que el valor por defecto de la columna (ver User::$attributes).
+     *
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'activo' => true,
+    ];
+
     protected $fillable = [
         'nombre',
         'slug',
         'direccion',
-        'codigo_referencia',
         'activo',
     ];
 

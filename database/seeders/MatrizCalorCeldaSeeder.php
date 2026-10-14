@@ -9,32 +9,34 @@ use Illuminate\Database\Seeder;
 class MatrizCalorCeldaSeeder extends Seeder
 {
     /**
-     * Umbrales PROVISIONALES sobre el producto Probabilidad x Impacto.
-     * Deben validarse contra los Excel institucionales antes de cerrar
-     * la Fase 4 — un Excel real podría usar una tabla con excepciones
-     * en vez de esta regla matemática simple.
+     * Regla inicial: suma Probabilidad + Impacto.
+     *   2–4 Bajo · 5–6 Moderado · 7 Alto · 8 Crítico
+     *
+     * INFOTEP no dispone de una tabla oficial. Esta regla es la que mejor
+     * reproduce sus matrices Excel (13 de 15 filas evaluadas; el producto
+     * P×I solo reproducía 3). Ver docs/reglas-nivel-riesgo.md.
+     *
+     * firstOrCreate: solo crea las celdas que falten. Volver a ejecutar el
+     * seeder no pisa los ajustes que el Administrador haga en cada celda.
      */
     public function run(): void
     {
-        $bajo = NivelRiesgo::where('slug', 'bajo')->firstOrFail();
-        $moderado = NivelRiesgo::where('slug', 'moderado')->firstOrFail();
-        $alto = NivelRiesgo::where('slug', 'alto')->firstOrFail();
-        $critico = NivelRiesgo::where('slug', 'critico')->firstOrFail();
+        $niveles = NivelRiesgo::pluck('id', 'slug');
 
         for ($probabilidad = 1; $probabilidad <= 4; $probabilidad++) {
             for ($impacto = 1; $impacto <= 4; $impacto++) {
-                $puntaje = $probabilidad * $impacto;
+                $suma = $probabilidad + $impacto;
 
                 $nivel = match (true) {
-                    $puntaje <= 3 => $bajo,
-                    $puntaje <= 6 => $moderado,
-                    $puntaje <= 9 => $alto,
-                    default => $critico,
+                    $suma <= 4 => 'bajo',
+                    $suma <= 6 => 'moderado',
+                    $suma === 7 => 'alto',
+                    default => 'critico',
                 };
 
-                MatrizCalorCelda::updateOrCreate(
+                MatrizCalorCelda::firstOrCreate(
                     ['probabilidad' => $probabilidad, 'impacto' => $impacto],
-                    ['nivel_riesgo_id' => $nivel->id]
+                    ['nivel_riesgo_id' => $niveles[$nivel]]
                 );
             }
         }

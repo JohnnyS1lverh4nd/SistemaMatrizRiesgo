@@ -7,8 +7,11 @@ use App\Http\Resources\EscalaNivelResource;
 use App\Models\EscalaNivel;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
-use Illuminate\Http\Response;
 
+/**
+ * Escalas 1–4 de Probabilidad e Impacto: estructura fija (la matriz de calor
+ * tiene siempre 4×4 celdas). Solo se editan nombre y descripción.
+ */
 class EscalaNivelController extends Controller
 {
     public function index(): AnonymousResourceCollection
@@ -18,22 +21,6 @@ class EscalaNivelController extends Controller
         return EscalaNivelResource::collection(
             EscalaNivel::orderBy('tipo')->orderBy('valor')->get()
         );
-    }
-
-    public function store(Request $request): EscalaNivelResource
-    {
-        $this->authorize('create', EscalaNivel::class);
-
-        $validated = $request->validate([
-            'tipo' => ['required', 'in:probabilidad,impacto'],
-            'valor' => ['required', 'integer', 'min:1'],
-            'nombre' => ['required', 'string', 'max:255'],
-            'descripcion' => ['nullable', 'string'],
-        ]);
-
-        $escala = EscalaNivel::create($validated);
-
-        return new EscalaNivelResource($escala);
     }
 
     public function show(EscalaNivel $escalaNivel): EscalaNivelResource
@@ -55,14 +42,5 @@ class EscalaNivelController extends Controller
         $escalaNivel->update($validated);
 
         return new EscalaNivelResource($escalaNivel);
-    }
-
-    public function destroy(EscalaNivel $escalaNivel): Response
-    {
-        $this->authorize('delete', $escalaNivel);
-
-        $escalaNivel->delete();
-
-        return response()->noContent();
     }
 }

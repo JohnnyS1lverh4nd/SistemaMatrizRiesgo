@@ -19,7 +19,7 @@ class FactorRiesgoSeeder extends Seeder
         ];
 
         foreach ($factores as $factor) {
-            FactorRiesgo::updateOrCreate(
+            FactorRiesgo::firstOrCreate(
                 ['slug' => $factor['slug']],
                 $factor
             );
