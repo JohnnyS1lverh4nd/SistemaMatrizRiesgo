@@ -78,5 +78,10 @@ class FortifyServiceProvider extends ServiceProvider
 
             return Limit::perMinute(5)->by($throttleKey);
         });
+
+        // Aplicado por App\Http\Middleware\ThrottlePasswordReset. Clave por ruta
+        // e IP: pedir enlaces y usarlos tienen cupos independientes.
+        RateLimiter::for('password-reset', fn (Request $request) => Limit::perMinute(5)
+            ->by($request->route()?->getName().'|'.$request->ip()));
     }
 }

@@ -107,6 +107,48 @@ test('reset attempt does not reveal whether an email is registered', function ()
     expect($desconocido->json())->toBe($registrado->json());
 });
 
+test('reset link requests are rate limited per ip across different emails', function () {
+    Notification::fake();
+
+    // Con correos distintos el límite por usuario del broker no aplica:
+    // solo el límite por IP evita el envío masivo de correos.
+    foreach (range(1, 5) as $i) {
+        $this->postJson(route('password.email'), ['email' => "persona{$i}@infotep.test"])->assertOk();
+    }
+
+    $this->postJson(route('password.email'), ['email' => 'persona6@infotep.test'])->assertTooManyRequests();
+
+    // Otra IP no se ve afectada.
+    $this->withServerVariables(['REMOTE_ADDR' => '10.0.0.2'])
+        ->postJson(route('password.email'), ['email' => 'persona7@infotep.test'])
+        ->assertOk();
+});
+
+test('reset attempts are rate limited per ip', function () {
+    $datos = [
+        'token' => 'invalid-token',
+        'password' => 'newpassword123',
+        'password_confirmation' => 'newpassword123',
+    ];
+
+    foreach (range(1, 5) as $i) {
+        $this->postJson(route('password.update'), [...$datos, 'email' => "persona{$i}@infotep.test"])
+            ->assertUnprocessable();
+    }
+
+    $this->postJson(route('password.update'), [...$datos, 'email' => 'persona6@infotep.test'])
+        ->assertTooManyRequests();
+});
+
+test('password reset rate limit does not affect other routes', function () {
+    foreach (range(1, 6) as $i) {
+        $this->postJson(route('password.email'), ['email' => "persona{$i}@infotep.test"]);
+    }
+
+    $user = User::factory()->create();
+    $this->postJson(route('login.store'), ['email' => $user->email, 'password' => 'password'])->assertOk();
+});
+
 test('password cannot be reset with invalid token', function () {
     $user = User::factory()->create();
 
