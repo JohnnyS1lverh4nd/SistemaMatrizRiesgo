@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\EscalaNivelController;
 use App\Http\Controllers\Api\EvidenciaController;
 use App\Http\Controllers\Api\ExportacionController;
 use App\Http\Controllers\Api\FactorRiesgoController;
+use App\Http\Controllers\Api\ImportacionController;
 use App\Http\Controllers\Api\MatrizCalorCeldaController;
 use App\Http\Controllers\Api\MatrizController;
 use App\Http\Controllers\Api\NivelRiesgoController;
@@ -40,6 +41,10 @@ Route::middleware(['auth:sanctum', EnsureUserIsActive::class])->group(function (
     Route::post('/matrices/{matriz}/archivar', [MatrizController::class, 'archivar']);
     Route::post('/matrices/{matriz}/clonar', [MatrizController::class, 'clonar']);
 
+    // Carga de ediciones desde Excel (RF-7): vista previa sin escribir y confirmación.
+    Route::post('/procesos/{proceso}/importacion/vista-previa', [ImportacionController::class, 'vistaPrevia']);
+    Route::post('/procesos/{proceso}/importacion', [ImportacionController::class, 'store']);
+
     // Riesgos de una edición. destroy = eliminación lógica, solo en borradores.
     Route::apiResource('matrices.riesgos', RiesgoController::class)
         ->shallow()
@@ -57,6 +62,7 @@ Route::middleware(['auth:sanctum', EnsureUserIsActive::class])->group(function (
     Route::get('/reportes/riesgos', [ReporteController::class, 'riesgos']);
     Route::get('/matrices/{matriz}/comparar/{otra}', [ReporteController::class, 'comparar']);
     Route::get('/matrices/{matriz}/exportar/pdf', [ExportacionController::class, 'pdf']);
+    Route::get('/matrices/{matriz}/exportar/excel', [ExportacionController::class, 'excel']);
 
     // Auditoría: solo lectura (los registros los crea el sistema).
     Route::get('/auditoria', [AuditoriaController::class, 'index']);

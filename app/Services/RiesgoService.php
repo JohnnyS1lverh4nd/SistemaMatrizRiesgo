@@ -17,12 +17,14 @@ class RiesgoService
 
     /**
      * @param  array<string, mixed>  $datos  validados por RiesgoRequest
+     * @param  Riesgo|null  $origen  riesgo equivalente de la edición anterior (importación)
      */
-    public function crear(Matriz $matriz, array $datos): Riesgo
+    public function crear(Matriz $matriz, array $datos, ?Riesgo $origen = null): Riesgo
     {
-        return DB::transaction(function () use ($matriz, $datos) {
+        return DB::transaction(function () use ($matriz, $datos, $origen) {
             $riesgo = new Riesgo(Arr::except($datos, 'factor_ids'));
             $riesgo->matriz_id = $matriz->id;
+            $riesgo->riesgo_origen_id = $origen?->id;
             // Incluye los descartados para no reutilizar números.
             $riesgo->orden = (int) Riesgo::withTrashed()->where('matriz_id', $matriz->id)->max('orden') + 1;
             $this->fijarNivelCalculado($riesgo);

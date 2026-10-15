@@ -18,6 +18,8 @@ class PeriodicidadSeeder extends Seeder
             ['nombre' => 'Cuatrimestral', 'slug' => 'cuatrimestral', 'frecuencia_dias' => 120],
             ['nombre' => 'Anual', 'slug' => 'anual', 'frecuencia_dias' => 365],
             ['nombre' => 'Cuando ocurra', 'slug' => 'cuando-ocurra'],
+            // Matriz SFP. Sin plazo fijo: cada módulo formativo dura distinto.
+            ['nombre' => 'Por cada módulo', 'slug' => 'por-cada-modulo'],
         ];
 
         foreach ($periodicidades as $periodicidad) {

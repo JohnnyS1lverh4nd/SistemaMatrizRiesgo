@@ -8,7 +8,7 @@ Decisiones confirmadas con el responsable del proyecto (oct. 2026):
   los encargados, sus departamentos; Dirección, Auditor y Administrador, todos.
   Filtrar por un departamento o proceso fuera del alcance responde 403.
 - **Atrasos** por días de la periodicidad (ver abajo).
-- **Exportación** a Excel y PDF generada en el backend (pendiente).
+- **Exportación** a Excel y PDF generada en el backend.
 
 Dashboard, reporte y exportación usan la misma consulta
 (`App\Services\Reportes\ConsultaRiesgos`): cuentan exactamente lo mismo.
@@ -63,9 +63,14 @@ esos datos.
   encabezado de columnas repetido en cada página y "Página X de Y". Los
   borradores llevan la marca "BORRADOR". Configuración restrictiva: sin
   recursos remotos ni PHP incrustado; todo el texto se escapa.
-- **Excel**: pendiente. PhpSpreadsheet requiere las extensiones PHP `gd` e
-  `intl` (`sudo dnf install php-gd php-intl`; también en el servidor de
-  producción).
+- **Excel** (`GET /api/matrices/{id}/exportar/excel`): PhpSpreadsheet, `.xlsx`
+  con la misma distribución (título y código, Dirección/Proceso/fecha, grupos,
+  columnas y un riesgo por fila desde la fila 6). El nivel lleva el color de la
+  matriz de calor; encabezados inmovilizados y repetidos al imprimir (carta
+  horizontal, ajustado al ancho). Los borradores llevan "BORRADOR" en la fila 3.
+  Todo el texto se escribe como cadena explícita: un valor que empiece por `=`
+  nunca se ejecuta como fórmula (*formula injection*). Requiere las extensiones
+  PHP `gd` e `intl` (también en producción).
 - La columna Seguimiento/Evidencias lista los seguimientos válidos (nunca los
   anulados) con su fecha.
 - Cada exportación queda en la auditoría (`evento = exportado`).
@@ -79,3 +84,4 @@ esos datos.
 | `GET /api/reportes/riesgos` (filtros) | Riesgos con su contexto y estado de seguimiento; más graves primero; 50 por página |
 | `GET /api/matrices/{id}/comparar/{otra}` | Comparación de dos ediciones |
 | `GET /api/matrices/{id}/exportar/pdf` | PDF con formato institucional |
+| `GET /api/matrices/{id}/exportar/excel` | Excel (.xlsx) con formato institucional |

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Matriz;
 use App\Services\Auditor;
 use App\Services\Exportacion\DatosMatriz;
+use App\Services\Exportacion\ExcelMatriz;
 use App\Services\Exportacion\PdfMatriz;
 use Illuminate\Http\Response;
 use Illuminate\Support\Str;
@@ -15,6 +16,7 @@ use Illuminate\Support\Str;
  * Quien puede ver la edición puede exportarla; cada exportación queda en la
  * auditoría (quién se llevó qué documento y cuándo).
  *   GET /api/matrices/{matriz}/exportar/pdf
+ *   GET /api/matrices/{matriz}/exportar/excel
  */
 class ExportacionController extends Controller
 {
@@ -30,6 +32,20 @@ class ExportacionController extends Controller
         return response($contenido, 200, [
             'Content-Type' => 'application/pdf',
             'Content-Disposition' => 'attachment; filename="'.$this->nombreArchivo($matriz, 'pdf').'"',
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
+    }
+
+    public function excel(Matriz $matriz, ExcelMatriz $excel): Response
+    {
+        $this->authorize('view', $matriz);
+
+        $contenido = $excel->generar($this->datos->de($matriz));
+        Auditor::registrar('exportado', 'matriz', $matriz->id, descripcion: 'Excel');
+
+        return response($contenido, 200, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Content-Disposition' => 'attachment; filename="'.$this->nombreArchivo($matriz, 'xlsx').'"',
             'X-Content-Type-Options' => 'nosniff',
         ]);
     }

@@ -58,7 +58,7 @@ Reglas confirmadas con el responsable del proyecto (oct. 2026):
 | `POST /api/matrices/{id}/archivar`         | Vigente → archivada                 |
 | `POST /api/matrices/{id}/clonar`           | Nuevo borrador a partir de esta     |
 
-## Pendiente (Fase 4)
+## Clonado
 
-`MatrizService::clonar` copiará los riesgos del origen, enlazando cada copia con
-su riesgo original para poder comparar ediciones (RF-5).
+`MatrizService::clonar` copia los riesgos del origen y enlaza cada copia con
+su riesgo original, para poder comparar ediciones (RF-5).

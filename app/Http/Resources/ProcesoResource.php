@@ -23,6 +23,7 @@ class ProcesoResource extends JsonResource
             // Para que el frontend muestre u oculte acciones; la API vuelve a comprobarlo.
             'permisos' => [
                 'crear_matriz' => $request->user()?->can('create', [Matriz::class, $this->resource]) ?? false,
+                'importar' => $request->user()?->can('importar', [Matriz::class, $this->resource]) ?? false,
             ],
         ];
     }

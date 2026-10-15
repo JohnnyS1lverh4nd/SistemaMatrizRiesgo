@@ -52,6 +52,15 @@ class MatrizPolicy
         return $user->puedeGestionarMatricesDe($matriz->proceso->departamento);
     }
 
+    /**
+     * Carga de matrices desde Excel (RF-7): crea y publica ediciones de una
+     * vez, sin pasar por borrador. Reservado al Administrador.
+     */
+    public function importar(User $user, Proceso $proceso): bool
+    {
+        return $user->role?->slug === 'administrador';
+    }
+
     private function gestionarEnEstado(User $user, Matriz $matriz, EstadoMatriz $requerido, string $mensaje): Response
     {
         if (! $user->puedeGestionarMatricesDe($matriz->proceso->departamento)) {

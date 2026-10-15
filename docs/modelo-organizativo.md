@@ -77,5 +77,5 @@ frecuente en los Excel (6 de 15 riesgos).
 ## Pendiente de validar con INFOTEP
 
 - Nombres de las escalas de Probabilidad e Impacto (los Excel solo usan 1–4).
-- Las filas sin Probabilidad/Impacto en CTIVPR y SFP (se tratarán en la
-  importación, Fase 9).
+- ~~Las filas sin Probabilidad/Impacto en CTIVPR y SFP~~: no son riesgos sin
+  evaluar, sino sub-filas de celdas combinadas (ver `docs/importacion.md`).

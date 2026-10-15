@@ -4,9 +4,13 @@ use App\Enums\EstadoMatriz;
 use App\Models\Auditoria;
 use App\Models\Riesgo;
 use App\Services\Exportacion\DatosMatriz;
+use App\Services\Exportacion\ExcelMatriz;
 use App\Services\Exportacion\PdfMatriz;
 use App\Services\SeguimientoService;
 use Database\Seeders\DatabaseSeeder;
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
+use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use Tests\Support\Escenario;
 
 /*
@@ -124,9 +128,88 @@ test('the pdf endpoint returns a pdf download and records it in the audit log', 
         ->toBe('PDF');
 });
 
+// --- Excel --------------------------------------------------------------------
+
+/** Genera el .xlsx y lo vuelve a abrir, como lo haría Excel. */
+function hojaExportada(array $datos): Worksheet
+{
+    $ruta = tempnam(sys_get_temp_dir(), 'xlsx');
+    file_put_contents($ruta, app(ExcelMatriz::class)->generar($datos));
+
+    try {
+        return IOFactory::createReader('Xlsx')->load($ruta)->getActiveSheet();
+    } finally {
+        unlink($ruta);
+    }
+}
+
+test('excel reproduces the institutional header and column groups', function () {
+    $hoja = hojaExportada(app(DatosMatriz::class)->de($this->matriz));
+
+    expect($hoja->getCell('A1')->getValue())->toBe('MATRIZ DE RIESGOS')
+        ->and($hoja->getCell('J1')->getValue())->toBe('RT-01-NI-ONA-156 Edición 1')
+        ->and($hoja->getCell('A2')->getValue())->toBe('DIRECCIÓN: Administración y Finanzas')
+        ->and($hoja->getCell('E2')->getValue())->toBe('PROCESO: SP 4.3. Abastecimiento')
+        ->and($hoja->getCell('J2')->getValue())->toBe("FECHA DE REVISIÓN: 30 de junio de 2026\nEDICIÓN: Abril-Junio 2026")
+        ->and($hoja->getCell('A4')->getValue())->toBe('Identificación de Riesgos')
+        ->and($hoja->getCell('F4')->getValue())->toBe('Análisis de Riesgos')
+        ->and($hoja->getCell('J4')->getValue())->toBe('Seguimiento y Control de Riesgos')
+        ->and($hoja->getCell('A5')->getValue())->toBe('Actividad')
+        ->and($hoja->getCell('M5')->getValue())->toBe('Seguimiento/ Evidencias')
+        ->and($hoja->getMergeCells())->toHaveKeys(['A1:I1', 'J1:M1', 'A4:E4', 'F4:I4', 'J4:M4']);
+});
+
+test('excel has one row per risk with the effective level and its colour', function () {
+    $hoja = hojaExportada(app(DatosMatriz::class)->de($this->matriz));
+
+    expect($hoja->getCell('A6')->getValue())->toBe('Evaluación de ofertas de los oferentes')
+        ->and($hoja->getCell('B6')->getValue())->toBe('Adjudicaciones erróneas')
+        ->and($hoja->getCell('C6')->getValue())->toBe('Administrativo / Personal')
+        ->and($hoja->getCell('F6')->getValue())->toBe(3)
+        ->and($hoja->getCell('G6')->getValue())->toBe(4)
+        ->and($hoja->getCell('H6')->getValue())->toBe('Alto')
+        ->and($hoja->getStyle('H6')->getFill()->getStartColor()->getRGB())->toBe('F97316')
+        ->and($hoja->getCell('L6')->getValue())->toBe('Trimestral')
+        // El ajuste manual queda indicado junto al nivel.
+        ->and($hoja->getCell('H7')->getValue())->toStartWith('Moderado')
+        ->and($hoja->getCell('H7')->getValue())->toContain('Ajustado')
+        ->and($hoja->getHighestRow())->toBe(7);
+});
+
+test('excel stores user text as plain strings, never as formulas', function () {
+    $riesgo = Riesgo::where(['matriz_id' => $this->matriz->id, 'orden' => 1])->firstOrFail();
+    $riesgo->forceFill(['causas' => '=HYPERLINK("http://ejemplo.test","clic")'])->saveQuietly();
+
+    $celda = hojaExportada(app(DatosMatriz::class)->de($this->matriz))->getCell('D6');
+
+    expect($celda->getDataType())->toBe(DataType::TYPE_STRING)
+        ->and($celda->getValue())->toBe('=HYPERLINK("http://ejemplo.test","clic")');
+});
+
+test('a draft is exported to excel with a visible draft mark', function () {
+    $borrador = Escenario::edicion(Escenario::proceso($this->compras, 'Otro'), 'Borrador', [['p' => 1, 'i' => 1]], EstadoMatriz::Borrador);
+
+    expect(hojaExportada(app(DatosMatriz::class)->de($borrador))->getCell('A3')->getValue())->toContain('BORRADOR')
+        ->and(hojaExportada(app(DatosMatriz::class)->de($this->matriz))->getCell('A3')->getValue())->toBeNull();
+});
+
+test('the excel endpoint returns an xlsx download and records it in the audit log', function () {
+    $respuesta = $this->actingAs($this->encargado)->get("/api/matrices/{$this->matriz->id}/exportar/excel")->assertOk();
+
+    expect($respuesta->headers->get('Content-Type'))->toBe('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        ->and($respuesta->headers->get('Content-Disposition'))->toContain('.xlsx')
+        // Un .xlsx es un ZIP: empieza por "PK".
+        ->and(substr($respuesta->getContent(), 0, 2))->toBe('PK');
+
+    expect(Auditoria::where(['evento' => 'exportado', 'entidad' => 'matriz', 'entidad_id' => $this->matriz->id])->value('descripcion'))
+        ->toBe('Excel');
+});
+
 test('exports respect the departamento scope', function () {
     $ajeno = Escenario::usuario('encargado-departamento', $this->admision);
 
     $this->actingAs($ajeno)->getJson("/api/matrices/{$this->matriz->id}/exportar/pdf")->assertForbidden();
+    $this->actingAs($ajeno)->getJson("/api/matrices/{$this->matriz->id}/exportar/excel")->assertForbidden();
     $this->actingAs(Escenario::usuario('auditor'))->get("/api/matrices/{$this->matriz->id}/exportar/pdf")->assertOk();
+    $this->actingAs(Escenario::usuario('auditor'))->get("/api/matrices/{$this->matriz->id}/exportar/excel")->assertOk();
 });
