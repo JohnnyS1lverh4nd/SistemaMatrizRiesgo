@@ -165,15 +165,22 @@ test('the level can be manually adjusted with a justification', function () {
         ->assertJsonPath('data.justificacion_ajuste', 'Controles compensatorios del Comité de Compras.');
 });
 
-test('manual adjustment rules', function (array $cambios, string $campo) {
+test('manual adjustment rules', function (array $cambios, string $campo, string $mensaje) {
+    // Niveles por slug, no por id: en MariaDB los AUTO_INCREMENT no se
+    // reinician entre pruebas (el rollback no los deshace).
+    if (isset($cambios['nivel_ajustado_id'])) {
+        $cambios['nivel_ajustado_id'] = NivelRiesgo::where('slug', $cambios['nivel_ajustado_id'])->value('id');
+    }
+
+    // El mensaje asegura que falla por la regla que se prueba y no por otra.
     $this->actingAs($this->encargado)->postJson("/api/matrices/{$this->borrador->id}/riesgos", riesgoValido($cambios))
         ->assertUnprocessable()
-        ->assertJsonValidationErrors($campo);
+        ->assertJsonValidationErrors([$campo => $mensaje]);
 })->with([
-    'ajuste sin justificación' => [['nivel_ajustado_id' => 2, 'justificacion_ajuste' => ''], 'justificacion_ajuste'],
-    'ajuste igual al calculado' => [['nivel_ajustado_id' => 3, 'justificacion_ajuste' => 'Igual'], 'nivel_ajustado_id'],
-    'ajuste de un riesgo sin evaluar' => [['probabilidad' => null, 'impacto' => null, 'nivel_ajustado_id' => 2, 'justificacion_ajuste' => 'X'], 'nivel_ajustado_id'],
-    'justificación sin ajuste' => [['justificacion_ajuste' => 'Sin ajuste'], 'justificacion_ajuste'],
+    'ajuste sin justificación' => [['nivel_ajustado_id' => 'moderado', 'justificacion_ajuste' => ''], 'justificacion_ajuste', 'Justifique el ajuste manual'],
+    'ajuste igual al calculado' => [['nivel_ajustado_id' => 'alto', 'justificacion_ajuste' => 'Igual'], 'nivel_ajustado_id', 'coincide con el calculado'],
+    'ajuste de un riesgo sin evaluar' => [['probabilidad' => null, 'impacto' => null, 'nivel_ajustado_id' => 'moderado', 'justificacion_ajuste' => 'X'], 'nivel_ajustado_id', 'Evalúe la probabilidad y el impacto'],
+    'justificación sin ajuste' => [['justificacion_ajuste' => 'Sin ajuste'], 'justificacion_ajuste', 'solo aplica cuando se ajusta'],
 ]);
 
 // --- Edición ----------------------------------------------------------------
