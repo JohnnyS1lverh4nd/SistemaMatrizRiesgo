@@ -1,0 +1,2691 @@
+{
+  "info": {
+    "name": "Sistema de Matrices de Riesgo — API",
+    "description": "API REST del Sistema de Gestión de Matrices de Riesgo (INFOTEP · DRO).\n\n**Antes de empezar** (ver `docs/api.md`):\n\n1. Edite las variables de la colección: `baseUrl`, `email` y `password` (un Administrador).\n2. Con el certificado autofirmado de pruebas, desactive *Settings → SSL certificate verification* en Postman.\n3. Ejecute **1. Autenticación → Iniciar sesión**. La sesión queda en las cookies de Postman.\n\n**Autenticación:** Laravel Sanctum en modo SPA (cookies de sesión, no tokens).\nEl script de la colección pide la cookie `XSRF-TOKEN` antes de cada petición\nque modifica datos y la envía en la cabecera `X-XSRF-TOKEN`.\n\n**Recorrido:** las carpetas siguen el orden de uso. Cada petición guarda los\nidentificadores que usa la siguiente (`departamento_id`, `matriz_id`, …) y\ncomprueba su resultado: se puede ejecutar completa con *Run collection* o\ncon Newman. Crea datos de ejemplo: ejecútela en un entorno de pruebas, no en\nproducción.\n\n**Respuestas:** JSON. Errores de validación → 422 con `errors` por campo;\nsin sesión → 401; sin permiso → 403; demasiadas peticiones → 429.\n",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://localhost:8443",
+      "description": "URL del sistema (SPA y API en el mismo dominio)"
+    },
+    {
+      "key": "email",
+      "value": "admin@prueba.local",
+      "description": "Correo de un Administrador"
+    },
+    {
+      "key": "password",
+      "value": "",
+      "description": "Contraseña de ese usuario (no se guarda en el repositorio)"
+    },
+    {
+      "key": "xsrf",
+      "value": "",
+      "description": "Token CSRF; lo actualiza la colección en cada respuesta"
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Sanctum en modo SPA: sesión por cookies y protección CSRF.",
+          "// Laravel envía la cookie XSRF-TOKEN en cada respuesta (la guarda el script",
+          "// de pruebas de la colección); aquí se reenvía en la cabecera X-XSRF-TOKEN en",
+          "// las peticiones que modifican datos. Referer identifica a la SPA.",
+          "const base = pm.collectionVariables.get('baseUrl');",
+          "pm.request.headers.upsert({ key: 'Accept', value: 'application/json' });",
+          "pm.request.headers.upsert({ key: 'Referer', value: base + '/' });",
+          "const xsrf = pm.collectionVariables.get('xsrf');",
+          "if (!['GET', 'HEAD', 'OPTIONS'].includes(pm.request.method)) {",
+          "    if (xsrf) {",
+          "        pm.request.headers.upsert({ key: 'X-XSRF-TOKEN', value: xsrf });",
+          "    } else {",
+          "        console.warn('Sin cookie CSRF: ejecute primero \"1. Autenticación → Cookie CSRF\".');",
+          "    }",
+          "}"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Guarda la cookie XSRF-TOKEN de cada respuesta (cambia al iniciar sesión).",
+          "const token = pm.cookies.get('XSRF-TOKEN');",
+          "if (token) { pm.collectionVariables.set('xsrf', decodeURIComponent(token)); }"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Autenticación",
+      "item": [
+        {
+          "name": "Cookie CSRF",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/sanctum/csrf-cookie",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sanctum",
+                "csrf-cookie"
+              ]
+            },
+            "description": "Entrega la cookie XSRF-TOKEN. La colección la pide sola antes de cada petición que modifica datos.\n\n**Quién puede:** Público."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Iniciar sesión",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "login"
+              ]
+            },
+            "description": "Inicia sesión con correo y contraseña (cookie de sesión). 5 intentos por minuto. Credenciales erróneas: 422.\n\n**Quién puede:** Público.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Usuario actual",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/user",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "user"
+              ]
+            },
+            "description": "Datos del usuario con sesión, su rol, departamentos y `meta.sesion_minutos` (inactividad permitida).\n\n**Quién puede:** Cualquier usuario autenticado."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Sesión iniciada', () => pm.expect(pm.response.json().data.email).to.eql(pm.collectionVariables.get('email')));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. Usuarios y roles",
+      "item": [
+        {
+          "name": "Roles",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/roles",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "roles"
+              ]
+            },
+            "description": "Lista de roles para asignar a los usuarios.\n\n**Quién puede:** Administrador."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "if (pm.response.code < 300) { pm.collectionVariables.set('rol_id', pm.response.json().data.find(r => r.slug === 'auditor').id); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar usuarios",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users"
+              ]
+            },
+            "description": "Todos los usuarios (activos e inactivos).\n\n**Quién puede:** Administrador."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Crear usuario",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users"
+              ]
+            },
+            "description": "Crea un usuario con rol y departamentos. En producción la contraseña exige 8 caracteres con mayúsculas, minúsculas, números y símbolos.\n\n**Quién puede:** Administrador.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Usuario de Postman\",\n  \"email\": \"postman.{{$timestamp}}@ejemplo.test\",\n  \"password\": \"Postman-Prueba-2026!\",\n  \"password_confirmation\": \"Postman-Prueba-2026!\",\n  \"role_id\": {{rol_id}},\n  \"departamento_ids\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "if (pm.response.code < 300) { pm.collectionVariables.set('user_id', pm.response.json().data.id); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ver usuario",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/{{user_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "{{user_id}}"
+              ]
+            },
+            "description": "Un usuario con su rol y departamentos.\n\n**Quién puede:** Administrador."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Modificar usuario",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/{{user_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "{{user_id}}"
+              ]
+            },
+            "description": "Cambios parciales: solo se validan los campos enviados. `activo: false` desactiva la cuenta (no se borra). Un administrador no puede desactivarse ni quitarse el rol a sí mismo.\n\n**Quién puede:** Administrador.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Usuario de Postman (modificado)\",\n  \"activo\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3. Departamentos y procesos",
+      "item": [
+        {
+          "name": "Listar departamentos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/departamentos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "departamentos"
+              ],
+              "query": [
+                {
+                  "key": "activo",
+                  "value": "1",
+                  "disabled": true,
+                  "description": "1 = activos, 0 = inactivos"
+                }
+              ]
+            },
+            "description": "Departamentos visibles para el usuario. Filtro opcional `activo`.\n\n**Quién puede:** Todos los roles (según su alcance)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Crear departamento",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/departamentos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "departamentos"
+              ]
+            },
+            "description": "El `slug` se genera del nombre si no se envía.\n\n**Quién puede:** Administrador.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Departamento Postman {{$timestamp}}\",\n  \"direccion\": \"Dirección de ejemplo\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "if (pm.response.code < 300) { pm.collectionVariables.set('departamento_id', pm.response.json().data.id); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ver departamento",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/departamentos/{{departamento_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "departamentos",
+                "{{departamento_id}}"
+              ]
+            },
+            "description": "Un departamento.\n\n**Quién puede:** Todos los roles (según su alcance)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Modificar departamento",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/departamentos/{{departamento_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "departamentos",
+                "{{departamento_id}}"
+              ]
+            },
+            "description": "Sin borrado: se desactiva con `activo: false`.\n\n**Quién puede:** Administrador.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"direccion\": \"Dirección de ejemplo (modificada)\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar procesos del departamento",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/departamentos/{{departamento_id}}/procesos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "departamentos",
+                "{{departamento_id}}",
+                "procesos"
+              ]
+            },
+            "description": "Procesos de un departamento. Filtro opcional `activo`.\n\n**Quién puede:** Todos los roles (según su alcance)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Crear proceso",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/departamentos/{{departamento_id}}/procesos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "departamentos",
+                "{{departamento_id}}",
+                "procesos"
+              ]
+            },
+            "description": "Proceso nuevo en un departamento activo.\n\n**Quién puede:** Administrador.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Proceso Postman\",\n  \"descripcion\": \"Proceso de ejemplo\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "if (pm.response.code < 300) { pm.collectionVariables.set('proceso_id', pm.response.json().data.id); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Crear proceso para importar",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/departamentos/{{departamento_id}}/procesos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "departamentos",
+                "{{departamento_id}}",
+                "procesos"
+              ]
+            },
+            "description": "Segundo proceso, sin ediciones, para el ejemplo de importación.\n\n**Quién puede:** Administrador.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Proceso Postman importado\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "if (pm.response.code < 300) { pm.collectionVariables.set('proceso_importacion_id', pm.response.json().data.id); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ver proceso",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/procesos/{{proceso_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "procesos",
+                "{{proceso_id}}"
+              ]
+            },
+            "description": "Un proceso; `permisos` indica qué puede hacer el usuario (crear ediciones, importar).\n\n**Quién puede:** Todos los roles (según su alcance)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Modificar proceso",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/procesos/{{proceso_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "procesos",
+                "{{proceso_id}}"
+              ]
+            },
+            "description": "Sin borrado: se desactiva con `activo: false` (deja de contar en los reportes).\n\n**Quién puede:** Administrador.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"descripcion\": \"Proceso de ejemplo (modificado)\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "4. Catálogos",
+      "item": [
+        {
+          "name": "Listar factores",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/factores-riesgo",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "factores-riesgo"
+              ]
+            },
+            "description": "Factores de riesgo. Filtro opcional `activo`.\n\n**Quién puede:** Todos los roles (según su alcance)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "if (pm.response.code < 300) { pm.collectionVariables.set('factor_id', pm.response.json().data[0].id); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Crear factor",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/factores-riesgo",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "factores-riesgo"
+              ]
+            },
+            "description": "Factor nuevo. El `slug` se genera del nombre si no se envía.\n\n**Quién puede:** Administrador.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Factor Postman {{$timestamp}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "if (pm.response.code < 300) { pm.collectionVariables.set('factor_nuevo_id', pm.response.json().data.id); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ver factor",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/factores-riesgo/{{factor_nuevo_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "factores-riesgo",
+                "{{factor_nuevo_id}}"
+              ]
+            },
+            "description": "Un factor.\n\n**Quién puede:** Todos los roles (según su alcance)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Desactivar factor",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/factores-riesgo/{{factor_nuevo_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "factores-riesgo",
+                "{{factor_nuevo_id}}"
+              ]
+            },
+            "description": "Los catálogos no se borran: se desactivan.\n\n**Quién puede:** Administrador.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"activo\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar periodicidades",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/periodicidades",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "periodicidades"
+              ]
+            },
+            "description": "Periodicidades; `frecuencia_dias` marca cuándo un seguimiento está atrasado.\n\n**Quién puede:** Todos los roles (según su alcance)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "if (pm.response.code < 300) { pm.collectionVariables.set('periodicidad_id', pm.response.json().data[0].id); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Crear periodicidad",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/periodicidades",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "periodicidades"
+              ]
+            },
+            "description": "Periodicidad nueva (`frecuencia_dias` opcional: sin plazo).\n\n**Quién puede:** Administrador.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Periodicidad Postman {{$timestamp}}\",\n  \"frecuencia_dias\": 15\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "if (pm.response.code < 300) { pm.collectionVariables.set('periodicidad_nueva_id', pm.response.json().data.id); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ver periodicidad",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/periodicidades/{{periodicidad_nueva_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "periodicidades",
+                "{{periodicidad_nueva_id}}"
+              ]
+            },
+            "description": "Una periodicidad.\n\n**Quién puede:** Todos los roles (según su alcance)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Desactivar periodicidad",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/periodicidades/{{periodicidad_nueva_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "periodicidades",
+                "{{periodicidad_nueva_id}}"
+              ]
+            },
+            "description": "Se desactiva en lugar de borrarse.\n\n**Quién puede:** Administrador.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"activo\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar niveles de riesgo",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/niveles-riesgo",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "niveles-riesgo"
+              ]
+            },
+            "description": "Bajo, Moderado, Alto y Crítico.\n\n**Quién puede:** Todos los roles (según su alcance)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "if (pm.response.code < 300) { const n = pm.response.json().data[0]; pm.collectionVariables.set('nivel_id', n.id); pm.collectionVariables.set('nivel_nombre', n.nombre); pm.collectionVariables.set('nivel_color', n.color); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ver nivel",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/niveles-riesgo/{{nivel_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "niveles-riesgo",
+                "{{nivel_id}}"
+              ]
+            },
+            "description": "Un nivel.\n\n**Quién puede:** Todos los roles (según su alcance)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Modificar nivel",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/niveles-riesgo/{{nivel_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "niveles-riesgo",
+                "{{nivel_id}}"
+              ]
+            },
+            "description": "Cambia nombre o color (#RRGGBB). El ejemplo reenvía los valores actuales: no cambia nada.\n\n**Quién puede:** Administrador.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"{{nivel_nombre}}\",\n  \"color\": \"{{nivel_color}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar escalas",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/escalas-nivel",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "escalas-nivel"
+              ]
+            },
+            "description": "Nombres de los valores 1–4 de Probabilidad e Impacto.\n\n**Quién puede:** Todos los roles (según su alcance)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "if (pm.response.code < 300) { const e = pm.response.json().data[0]; pm.collectionVariables.set('escala_id', e.id); pm.collectionVariables.set('escala_nombre', e.nombre); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ver escala",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/escalas-nivel/{{escala_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "escalas-nivel",
+                "{{escala_id}}"
+              ]
+            },
+            "description": "Un valor de escala.\n\n**Quién puede:** Todos los roles (según su alcance)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Modificar escala",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/escalas-nivel/{{escala_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "escalas-nivel",
+                "{{escala_id}}"
+              ]
+            },
+            "description": "Cambia el nombre de un valor. El ejemplo reenvía el actual.\n\n**Quién puede:** Administrador.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"{{escala_nombre}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Matriz de calor",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/matriz-calor-celdas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "matriz-calor-celdas"
+              ]
+            },
+            "description": "Las 16 celdas Probabilidad × Impacto con su nivel.\n\n**Quién puede:** Todos los roles (según su alcance)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "if (pm.response.code < 300) { const c = pm.response.json().data[0]; pm.collectionVariables.set('celda_id', c.id); pm.collectionVariables.set('celda_nivel_id', c.nivel_riesgo.id); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ver celda",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/matriz-calor-celdas/{{celda_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "matriz-calor-celdas",
+                "{{celda_id}}"
+              ]
+            },
+            "description": "Una celda.\n\n**Quién puede:** Todos los roles (según su alcance)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Modificar celda",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/matriz-calor-celdas/{{celda_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "matriz-calor-celdas",
+                "{{celda_id}}"
+              ]
+            },
+            "description": "Asigna otro nivel a una combinación. Los borradores se recalculan; las ediciones publicadas no cambian. El ejemplo reenvía el nivel actual.\n\n**Quién puede:** Administrador.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nivel_riesgo_id\": {{celda_nivel_id}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "5. Matrices y riesgos",
+      "item": [
+        {
+          "name": "Listar ediciones del proceso",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/procesos/{{proceso_id}}/matrices",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "procesos",
+                "{{proceso_id}}",
+                "matrices"
+              ]
+            },
+            "description": "Ediciones de la matriz de un proceso, con `permisos` por edición.\n\n**Quién puede:** Todos los roles (según su alcance)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Crear edición (borrador)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/procesos/{{proceso_id}}/matrices",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "procesos",
+                "{{proceso_id}}",
+                "matrices"
+              ]
+            },
+            "description": "Edición nueva en borrador. El nombre no se repite dentro del proceso.\n\n**Quién puede:** Administrador y Encargado de Departamento (sus departamentos).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Abril-Junio 2026\",\n  \"fecha_revision\": \"2026-06-30\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "if (pm.response.code < 300) { pm.collectionVariables.set('matriz_id', pm.response.json().data.id); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ver edición",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/matrices/{{matriz_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "matrices",
+                "{{matriz_id}}"
+              ]
+            },
+            "description": "Una edición.\n\n**Quién puede:** Todos los roles (según su alcance)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Modificar borrador",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/matrices/{{matriz_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "matrices",
+                "{{matriz_id}}"
+              ]
+            },
+            "description": "Solo en borrador.\n\n**Quién puede:** Administrador y Encargado de Departamento (sus departamentos).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fecha_revision\": \"2026-06-29\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Crear riesgo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/matrices/{{matriz_id}}/riesgos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "matrices",
+                "{{matriz_id}}",
+                "riesgos"
+              ]
+            },
+            "description": "Fila de la matriz con los 13 campos. El nivel lo calcula el servidor con la matriz de calor; `nivel_ajustado_id` + `justificacion_ajuste` lo ajustan a mano.\n\n**Quién puede:** Administrador y Encargado de Departamento (sus departamentos).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"actividad\": \"Evaluación de ofertas\",\n  \"descripcion\": \"Adjudicaciones erróneas\",\n  \"causas\": \"Criterios de evaluación ambiguos\",\n  \"control_actual\": \"Pautas a los peritos\",\n  \"probabilidad\": 3,\n  \"impacto\": 4,\n  \"factor_ids\": [\n    {{factor_id}}\n  ],\n  \"sintoma\": \"Reclamaciones de suplidores\",\n  \"tratamiento\": \"Revisión de pliegos\",\n  \"responsable\": \"Comité de Compras\",\n  \"periodicidad_id\": {{periodicidad_id}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Nivel calculado por el servidor', () => pm.expect(pm.response.json().data.nivel_calculado.slug).to.eql('alto'));",
+                  "if (pm.response.code < 300) { pm.collectionVariables.set('riesgo_id', pm.response.json().data.id); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Crear riesgo para descartar",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/matrices/{{matriz_id}}/riesgos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "matrices",
+                "{{matriz_id}}",
+                "riesgos"
+              ]
+            },
+            "description": "Segundo riesgo, para el ejemplo de eliminación.\n\n**Quién puede:** Administrador y Encargado de Departamento (sus departamentos).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"actividad\": \"Actividad\",\n  \"descripcion\": \"Riesgo a descartar\",\n  \"probabilidad\": 1,\n  \"impacto\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "if (pm.response.code < 300) { pm.collectionVariables.set('riesgo_descartar_id', pm.response.json().data.id); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar riesgos de la edición",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/matrices/{{matriz_id}}/riesgos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "matrices",
+                "{{matriz_id}}",
+                "riesgos"
+              ]
+            },
+            "description": "Riesgos en orden, con nivel calculado, ajustado y efectivo.\n\n**Quién puede:** Todos los roles (según su alcance)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ver riesgo",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/riesgos/{{riesgo_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "riesgos",
+                "{{riesgo_id}}"
+              ]
+            },
+            "description": "Un riesgo.\n\n**Quién puede:** Todos los roles (según su alcance)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Modificar riesgo",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/riesgos/{{riesgo_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "riesgos",
+                "{{riesgo_id}}"
+              ]
+            },
+            "description": "Cambios parciales en un borrador; el nivel se recalcula.\n\n**Quién puede:** Administrador y Encargado de Departamento (sus departamentos).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"probabilidad\": 4,\n  \"impacto\": 4\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Nivel recalculado', () => pm.expect(pm.response.json().data.nivel_calculado.slug).to.eql('critico'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Eliminar riesgo",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/riesgos/{{riesgo_descartar_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "riesgos",
+                "{{riesgo_descartar_id}}"
+              ]
+            },
+            "description": "Eliminación lógica, solo en borradores.\n\n**Quién puede:** Administrador y Encargado de Departamento (sus departamentos)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Publicar edición",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/matrices/{{matriz_id}}/publicar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "matrices",
+                "{{matriz_id}}",
+                "publicar"
+              ]
+            },
+            "description": "Borrador → vigente (la vigente anterior se archiva). Exige todos los riesgos evaluados. Después es inmutable.\n\n**Quién puede:** Administrador y Encargado de Departamento (sus departamentos)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Nueva edición desde otra (clonar)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/matrices/{{matriz_id}}/clonar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "matrices",
+                "{{matriz_id}}",
+                "clonar"
+              ]
+            },
+            "description": "Borrador nuevo con copia de los riesgos, enlazados con sus originales (comparación).\n\n**Quién puede:** Administrador y Encargado de Departamento (sus departamentos).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Julio-Septiembre 2026\",\n  \"fecha_revision\": \"2026-09-30\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "if (pm.response.code < 300) { pm.collectionVariables.set('matriz_clon_id', pm.response.json().data.id); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Comparar ediciones",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/matrices/{{matriz_id}}/comparar/{{matriz_clon_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "matrices",
+                "{{matriz_id}}",
+                "comparar",
+                "{{matriz_clon_id}}"
+              ]
+            },
+            "description": "Riesgos agregados, cerrados y cambios de nivel entre dos ediciones del mismo proceso (RF-5).\n\n**Quién puede:** Todos los roles (según su alcance)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Descartar borrador",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/matrices/{{matriz_clon_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "matrices",
+                "{{matriz_clon_id}}"
+              ]
+            },
+            "description": "Solo borradores nunca publicados (eliminación lógica).\n\n**Quién puede:** Administrador y Encargado de Departamento (sus departamentos)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "6. Seguimiento y evidencias",
+      "item": [
+        {
+          "name": "Registrar seguimiento",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/riesgos/{{riesgo_id}}/seguimientos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "riesgos",
+                "{{riesgo_id}}",
+                "seguimientos"
+              ]
+            },
+            "description": "Avance con fecha (no futura) y descripción; puede cambiar el estado del tratamiento (pendiente / en_progreso / cumplido) y adjuntar hasta 5 archivos (`archivos[]`: PDF, imágenes o Excel, 10 MB).\n\n**Quién puede:** Administrador y Encargados (sus departamentos).",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "fecha",
+                  "type": "text",
+                  "value": "2026-07-15"
+                },
+                {
+                  "key": "descripcion",
+                  "type": "text",
+                  "value": "Se revisaron los pliegos del trimestre."
+                },
+                {
+                  "key": "estado_tratamiento",
+                  "type": "text",
+                  "value": "en_progreso"
+                },
+                {
+                  "key": "archivos[]",
+                  "type": "file",
+                  "src": "ejemplo-evidencia.pdf"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "if (pm.response.code < 300) { const s = pm.response.json().data; pm.collectionVariables.set('seguimiento_id', s.id); if (s.evidencias && s.evidencias.length) { pm.collectionVariables.set('evidencia_id', s.evidencias[0].id); } }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar seguimientos del riesgo",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/riesgos/{{riesgo_id}}/seguimientos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "riesgos",
+                "{{riesgo_id}}",
+                "seguimientos"
+              ]
+            },
+            "description": "Histórico del riesgo, más reciente primero (incluye anulados, marcados).\n\n**Quién puede:** Todos los roles (según su alcance)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ver seguimiento",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/seguimientos/{{seguimiento_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "seguimientos",
+                "{{seguimiento_id}}"
+              ]
+            },
+            "description": "Un seguimiento con sus evidencias.\n\n**Quién puede:** Todos los roles (según su alcance)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Descargar evidencia",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/evidencias/{{evidencia_id}}/descargar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "evidencias",
+                "{{evidencia_id}}",
+                "descargar"
+              ]
+            },
+            "description": "Archivo adjunto (disco privado; solo con permiso sobre el riesgo).\n\n**Quién puede:** Todos los roles (según su alcance)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Anular seguimiento",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/seguimientos/{{seguimiento_id}}/anular",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "seguimientos",
+                "{{seguimiento_id}}",
+                "anular"
+              ]
+            },
+            "description": "El historial no se edita: un error se anula con motivo y queda visible como anulado.\n\n**Quién puede:** Administrador y Encargados (sus departamentos).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"motivo\": \"Registrado por error (ejemplo de Postman).\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "7. Importación y exportación",
+      "item": [
+        {
+          "name": "Vista previa de importación",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/procesos/{{proceso_importacion_id}}/importacion/vista-previa",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "procesos",
+                "{{proceso_importacion_id}}",
+                "importacion",
+                "vista-previa"
+              ]
+            },
+            "description": "Analiza un Excel institucional (RT-01-NI-ONA-156) sin guardar nada: ediciones, errores (con hoja y fila) y avisos. 20 por minuto.\n\n**Quién puede:** Administrador.",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "archivo",
+                  "type": "file",
+                  "src": "ejemplo-importacion.xlsx"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('El archivo es válido', () => pm.expect(pm.response.json().data.valido).to.be.true);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Importar Excel",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/procesos/{{proceso_importacion_id}}/importacion",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "procesos",
+                "{{proceso_importacion_id}}",
+                "importacion"
+              ]
+            },
+            "description": "Importa el mismo archivo (se vuelve a analizar). Solo en procesos sin ediciones; con errores responde 422 y no importa nada.\n\n**Quién puede:** Administrador.",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "archivo",
+                  "type": "file",
+                  "src": "ejemplo-importacion.xlsx"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Exportar a PDF",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/matrices/{{matriz_id}}/exportar/pdf",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "matrices",
+                "{{matriz_id}}",
+                "exportar",
+                "pdf"
+              ]
+            },
+            "description": "PDF con el formato institucional y el logo. 20 por minuto. En Postman: \"Send and Download\".\n\n**Quién puede:** Todos los roles (según su alcance)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Archivo pdf', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/pdf'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Exportar a Excel",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/matrices/{{matriz_id}}/exportar/excel",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "matrices",
+                "{{matriz_id}}",
+                "exportar",
+                "excel"
+              ]
+            },
+            "description": "Excel con la hoja de la plantilla institucional y el logo; se puede volver a importar. 20 por minuto.\n\n**Quién puede:** Todos los roles (según su alcance)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Archivo vnd.openxmlformats-o', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "8. Reportes y auditoría",
+      "item": [
+        {
+          "name": "Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard"
+              ],
+              "query": [
+                {
+                  "key": "departamento_id",
+                  "value": "{{departamento_id}}",
+                  "disabled": true,
+                  "description": "Opcional"
+                }
+              ]
+            },
+            "description": "Totales por nivel, mapa de calor, estados del tratamiento, prioritarios, atrasados y consolidado por departamento (solo ediciones vigentes, procesos activos).\n\n**Quién puede:** Todos los roles (según su alcance)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reporte de riesgos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/reportes/riesgos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "reportes",
+                "riesgos"
+              ],
+              "query": [
+                {
+                  "key": "departamento_id",
+                  "value": "{{departamento_id}}",
+                  "disabled": true
+                },
+                {
+                  "key": "proceso_id",
+                  "value": "{{proceso_id}}",
+                  "disabled": true
+                },
+                {
+                  "key": "factor_id",
+                  "value": "{{factor_id}}",
+                  "disabled": true
+                },
+                {
+                  "key": "nivel_id",
+                  "value": "{{nivel_id}}",
+                  "disabled": true
+                },
+                {
+                  "key": "responsable",
+                  "value": "Compras",
+                  "disabled": true,
+                  "description": "Texto contenido"
+                },
+                {
+                  "key": "estado_tratamiento",
+                  "value": "pendiente",
+                  "disabled": true,
+                  "description": "pendiente | en_progreso | cumplido"
+                },
+                {
+                  "key": "desde",
+                  "value": "2026-01-01",
+                  "disabled": true,
+                  "description": "Fecha de revisión (incluye archivadas)"
+                },
+                {
+                  "key": "hasta",
+                  "value": "2026-12-31",
+                  "disabled": true
+                },
+                {
+                  "key": "prioritarios",
+                  "value": "1",
+                  "disabled": true,
+                  "description": "Alto/Crítico no cumplidos"
+                },
+                {
+                  "key": "atrasados",
+                  "value": "1",
+                  "disabled": true,
+                  "description": "Seguimiento vencido"
+                }
+              ]
+            },
+            "description": "Riesgos con filtros, más graves primero, 50 por página.\n\n**Quién puede:** Todos los roles (según su alcance)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Auditoría",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auditoria",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auditoria"
+              ],
+              "query": [
+                {
+                  "key": "entidad",
+                  "value": "riesgo",
+                  "disabled": true,
+                  "description": "matriz, riesgo, usuario…"
+                },
+                {
+                  "key": "entidad_id",
+                  "value": "{{riesgo_id}}",
+                  "disabled": true
+                },
+                {
+                  "key": "evento",
+                  "value": "actualizado",
+                  "disabled": true,
+                  "description": "creado, actualizado, publicado, exportado, importado, login…"
+                },
+                {
+                  "key": "usuario_id",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "desde",
+                  "value": "2026-01-01",
+                  "disabled": true
+                },
+                {
+                  "key": "hasta",
+                  "value": "2026-12-31",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Registro de cambios (quién, qué, cuándo), paginado.\n\n**Quién puede:** Administrador y Auditor."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Historial de una edición",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/matrices/{{matriz_id}}/historial",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "matrices",
+                "{{matriz_id}}",
+                "historial"
+              ]
+            },
+            "description": "Cambios de la edición y de sus riesgos.\n\n**Quién puede:** Todos los roles (según su alcance)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Historial de un riesgo",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/riesgos/{{riesgo_id}}/historial",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "riesgos",
+                "{{riesgo_id}}",
+                "historial"
+              ]
+            },
+            "description": "Cambios de un riesgo (incluye factores y seguimientos).\n\n**Quién puede:** Todos los roles (según su alcance)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "9. Mi contraseña",
+      "item": [
+        {
+          "name": "Cambiar mi contraseña",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/user/password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "user",
+                "password"
+              ]
+            },
+            "description": "Exige la contraseña actual. El ejemplo pone la misma: no cambia nada.\n\n**Quién puede:** Cualquier usuario autenticado.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current_password\": \"{{password}}\",\n  \"password\": \"{{password}}\",\n  \"password_confirmation\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "10. Cerrar sesión",
+      "item": [
+        {
+          "name": "Cerrar sesión",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "logout"
+              ]
+            },
+            "description": "Termina la sesión.\n\n**Quién puede:** Cualquier usuario autenticado."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Comprobar sesión cerrada",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/user",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "user"
+              ]
+            },
+            "description": "Sin sesión, la API responde 401.\n\n**Quién puede:** Público."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "11. Recuperar contraseña (sin sesión)",
+      "item": [
+        {
+          "name": "Olvidé mi contraseña",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/forgot-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "forgot-password"
+              ]
+            },
+            "description": "Solo sin sesión (con sesión, Fortify redirige). Envía el enlace de recuperación al correo. Responde lo mismo exista o no la cuenta (no revela usuarios). 5 por minuto.\n\n**Quién puede:** Público.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Respuesta JSON de Fortify', () => pm.expect(pm.response.json().message).to.be.a('string'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Restablecer contraseña",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reset-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reset-password"
+              ]
+            },
+            "description": "Con el `token` y el `email` del enlace recibido por correo. Sin un token real responde 422 (es lo esperado en el recorrido).\n\n**Quién puede:** Público.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"TOKEN_DEL_CORREO\",\n  \"email\": \"{{email}}\",\n  \"password\": \"Nueva-Clave-2026!\",\n  \"password_confirmation\": \"Nueva-Clave-2026!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 422', () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "12. Otras operaciones (fuera del recorrido)",
+      "item": [
+        {
+          "name": "Archivar edición (no se ejecuta en el recorrido)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/matrices/{{matriz_id}}/archivar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "matrices",
+                "{{matriz_id}}",
+                "archivar"
+              ]
+            },
+            "description": "Vigente → archivada (el proceso queda sin vigente). No se ejecuta en el recorrido: el seguimiento siguiente necesita la edición vigente.\n\n**Quién puede:** Administrador y Encargado de Departamento (sus departamentos)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": []
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

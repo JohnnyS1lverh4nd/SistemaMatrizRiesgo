@@ -16,7 +16,14 @@ class PdfMatriz
      */
     public function html(array $datos): string
     {
-        return view('exportaciones.matriz', $datos)->render();
+        return view('exportaciones.matriz', [
+            ...$datos,
+            // Logo incrustado: DomPDF no carga archivos externos (isRemoteEnabled false, chroot).
+            'logo' => 'data:image/png;base64,'.base64_encode((string) file_get_contents(FormatoInstitucional::rutaLogo())),
+            'anchos' => FormatoInstitucional::ANCHOS_PDF,
+            'fondosGrupos' => FormatoInstitucional::FONDOS_GRUPOS,
+            'colorNivel' => fn (?array $nivel) => FormatoInstitucional::colorNivel($nivel),
+        ])->render();
     }
 
     /**

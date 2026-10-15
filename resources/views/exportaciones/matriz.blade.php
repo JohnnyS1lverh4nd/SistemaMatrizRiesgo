@@ -1,74 +1,67 @@
 {{--
-    Matriz de riesgos con el formato institucional RT-01-NI-ONA-156.
+    Matriz de riesgos con el formato de la plantilla institucional
+    RT-01-NI-ONA-156 (mismos colores y estructura que el Excel exportado).
     Todo el texto usa {{ }} (escapado): el contenido lo escriben usuarios.
 --}}
+@php($formato = \App\Services\Exportacion\FormatoInstitucional::class)
 <!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
 <title>Matriz de riesgos · {{ $encabezado['proceso'] }} · {{ $encabezado['edicion'] }}</title>
 <style>
-    @page { margin: 28px 24px 34px 24px; }
-    body { font-family: "DejaVu Sans", sans-serif; font-size: 6.5pt; color: #111827; }
-    table { width: 100%; border-collapse: collapse; }
-    /* Anchos fijos por columna (fila "anchos"): DomPDF ignora los anchos de celda en tablas automáticas. */
-    table.riesgos { table-layout: fixed; }
+    @page { margin: 22px 22px 32px 22px; }
+    body { font-family: "DejaVu Sans", sans-serif; font-size: 6.5pt; color: #000000; }
+    table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+    th, td { border: 0.7px solid #000000; padding: 3px; vertical-align: middle; word-wrap: break-word; }
+    /* Fila invisible con los anchos: DomPDF los toma de la primera fila. */
     tr.anchos td { border: none; padding: 0; height: 0; }
-    td { word-wrap: break-word; }
-    th, td { border: 0.6px solid #6b7280; padding: 3px; vertical-align: top; }
-    .encabezado td { font-size: 8pt; }
-    .titulo { font-size: 12pt; font-weight: bold; text-align: center; }
-    .codigo { text-align: center; font-weight: bold; }
-    .grupo th { background: #e5e7eb; font-size: 7.5pt; text-align: center; }
-    .columnas th { background: #f3f4f6; font-size: 6pt; text-align: center; vertical-align: middle; }
     thead { display: table-header-group; } /* encabezado repetido en cada página */
+    /* Ningún riesgo se corta entre dos páginas (DomPDF tampoco divide filas). */
     tr { page-break-inside: avoid; }
+
+    .fila-titulo td { background: #{{ $formato::FONDO_TITULO }}; height: 44px; }
+    .logo { text-align: center; }
+    .logo img { height: 38px; }
+    .titulo { font-size: 20pt; text-align: center; }
+    .borrador { color: #C00000; font-weight: bold; font-size: 9pt; text-align: center; }
+    .codigo { font-weight: bold; font-size: 9pt; text-align: center; }
+    .fila-datos td { background: #{{ $formato::FONDO_DATOS_ENCABEZADO }}; font-weight: bold; font-size: 7pt; }
+    .grupo th { font-size: 8.5pt; text-align: center; }
+    .columnas th { background: #{{ $formato::FONDO_COLUMNAS }}; font-size: 6pt; text-align: center; }
     .centro { text-align: center; }
-    .muestra { display: inline-block; width: 7px; height: 7px; margin-right: 3px; border: 0.5px solid #374151; }
-    .nota { font-size: 5.5pt; color: #4b5563; }
-    .borrador { color: #b91c1c; font-weight: bold; font-size: 9pt; text-align: center; }
+    .nivel { text-align: center; font-weight: bold; }
+    .nota { font-size: 5.5pt; font-weight: normal; }
+    .seguimiento { color: #{{ $formato::COLOR_SEGUIMIENTO }}; font-weight: bold; }
     .multilinea { white-space: pre-line; }
 </style>
 </head>
 <body>
 
-<table class="encabezado">
-    <tr>
-        <td colspan="9" class="titulo">{{ $encabezado['titulo'] }}</td>
-        <td colspan="4" class="codigo">{{ $encabezado['codigo'] }} {{ $encabezado['edicion_formulario'] }}</td>
-    </tr>
-    <tr>
-        <td colspan="4"><strong>DIRECCIÓN:</strong> {{ $encabezado['direccion'] }}</td>
-        <td colspan="5"><strong>PROCESO:</strong> {{ $encabezado['proceso'] }}</td>
-        <td colspan="4"><strong>FECHA DE REVISIÓN:</strong> {{ $encabezado['fecha_revision'] }}<br><strong>EDICIÓN:</strong> {{ $encabezado['edicion'] }}</td>
-    </tr>
-</table>
-
-@if ($encabezado['estado'] === 'borrador')
-    <p class="borrador">BORRADOR — documento sin publicar</p>
-@endif
-
-<table class="riesgos" style="margin-top: 4px;">
+<table>
     <thead>
-        {{-- Primera fila invisible: con table-layout fixed DomPDF toma de aquí los anchos. --}}
         <tr class="anchos">
-            <td style="width: 8%;"></td>
-            <td style="width: 8%;"></td>
-            <td style="width: 7.5%;"></td>
-            <td style="width: 9.5%;"></td>
-            <td style="width: 8.5%;"></td>
-            <td style="width: 6%;"></td>
-            <td style="width: 4.5%;"></td>
-            <td style="width: 6.5%;"></td>
-            <td style="width: 8%;"></td>
-            <td style="width: 9.5%;"></td>
-            <td style="width: 8%;"></td>
-            <td style="width: 7.5%;"></td>
-            <td style="width: 8.5%;"></td>
+            @foreach ($anchos as $ancho)
+                <td style="width: {{ $ancho }}%;"></td>
+            @endforeach
         </tr>
+        {{-- Fila 1: logo · título · [BORRADOR] · código del formulario --}}
+        <tr class="fila-titulo">
+            <td class="logo"><img src="{{ $logo }}" alt="INFOTEP"></td>
+            <td colspan="8" class="titulo">{{ $encabezado['titulo'] }}</td>
+            <td class="borrador">{{ $encabezado['estado'] === 'borrador' ? 'BORRADOR' : '' }}</td>
+            <td colspan="3" class="codigo">{{ $encabezado['codigo'] }}<br>{{ $encabezado['edicion_formulario'] }}</td>
+        </tr>
+        {{-- Fila 2: Dirección · Proceso · Fecha de revisión (el PDF no tiene hoja: la edición va aquí) --}}
+        <tr class="fila-datos">
+            <td colspan="2">DIRECCIÓN: {{ $encabezado['direccion'] }}</td>
+            <td colspan="7" style="font-size: 8pt;">PROCESO: {{ $encabezado['proceso'] }}</td>
+            <td colspan="4">FECHA DE REVISIÓN: {{ $encabezado['fecha_revision'] }}<br>EDICIÓN: {{ $encabezado['edicion'] }}</td>
+        </tr>
+        {{-- Fila 3: grupos de columnas con su color --}}
         <tr class="grupo">
-            @foreach ($grupos as $grupo)
-                <th colspan="{{ count($grupo['columnas']) }}">{{ $grupo['titulo'] }}</th>
+            @foreach ($grupos as $indice => $grupo)
+                <th colspan="{{ count($grupo['columnas']) }}" style="background: #{{ $fondosGrupos[$indice] ?? $formato::FONDO_COLUMNAS }};">{{ $grupo['titulo'] }}</th>
             @endforeach
         </tr>
         <tr class="columnas">
@@ -81,6 +74,7 @@
     </thead>
     <tbody>
         @forelse ($filas as $fila)
+            @php($colores = $colorNivel($fila['nivel']))
             <tr>
                 <td class="multilinea">{{ $fila['actividad'] }}</td>
                 <td class="multilinea">{{ $fila['descripcion'] }}</td>
@@ -89,22 +83,21 @@
                 <td class="multilinea">{{ $fila['control_actual'] }}</td>
                 <td class="centro">{{ $fila['probabilidad'] }}</td>
                 <td class="centro">{{ $fila['impacto'] }}</td>
-                <td>
-                    @if ($fila['nivel'])
-                        {{-- El color va siempre con el nombre del nivel. --}}
-                        <span class="muestra" style="background: {{ $fila['nivel']['color'] }};"></span>{{ $fila['nivel']['nombre'] }}
+                @if ($colores)
+                    <td class="nivel" style="background: #{{ $colores['fondo'] }}; color: #{{ $colores['texto'] }};">
+                        {{ $fila['nivel']['nombre'] }}
                         @if ($fila['nivel_ajustado'])
                             <br><span class="nota">Ajustado: {{ $fila['justificacion_ajuste'] }}</span>
                         @endif
-                    @else
-                        Sin evaluar
-                    @endif
-                </td>
+                    </td>
+                @else
+                    <td class="centro">Sin evaluar</td>
+                @endif
                 <td class="multilinea">{{ $fila['sintoma'] }}</td>
                 <td class="multilinea">{{ $fila['tratamiento'] }}</td>
                 <td class="multilinea">{{ $fila['responsable'] }}</td>
                 <td>{{ $fila['periodicidad'] }}</td>
-                <td class="multilinea">{{ $fila['seguimiento'] }}</td>
+                <td class="multilinea seguimiento">{{ $fila['seguimiento'] }}</td>
             </tr>
         @empty
             <tr><td colspan="13" class="centro">Esta edición no tiene riesgos registrados.</td></tr>

@@ -42,8 +42,11 @@ Route::middleware(['auth:sanctum', EnsureUserIsActive::class])->group(function (
     Route::post('/matrices/{matriz}/clonar', [MatrizController::class, 'clonar']);
 
     // Carga de ediciones desde Excel (RF-7): vista previa sin escribir y confirmación.
-    Route::post('/procesos/{proceso}/importacion/vista-previa', [ImportacionController::class, 'vistaPrevia']);
-    Route::post('/procesos/{proceso}/importacion', [ImportacionController::class, 'store']);
+    // Generan o leen archivos: límite más estricto (20 por minuto y usuario).
+    Route::middleware('throttle:operaciones-costosas')->group(function () {
+        Route::post('/procesos/{proceso}/importacion/vista-previa', [ImportacionController::class, 'vistaPrevia']);
+        Route::post('/procesos/{proceso}/importacion', [ImportacionController::class, 'store']);
+    });
 
     // Riesgos de una edición. destroy = eliminación lógica, solo en borradores.
     Route::apiResource('matrices.riesgos', RiesgoController::class)
@@ -61,8 +64,11 @@ Route::middleware(['auth:sanctum', EnsureUserIsActive::class])->group(function (
     Route::get('/dashboard', [ReporteController::class, 'dashboard']);
     Route::get('/reportes/riesgos', [ReporteController::class, 'riesgos']);
     Route::get('/matrices/{matriz}/comparar/{otra}', [ReporteController::class, 'comparar']);
-    Route::get('/matrices/{matriz}/exportar/pdf', [ExportacionController::class, 'pdf']);
-    Route::get('/matrices/{matriz}/exportar/excel', [ExportacionController::class, 'excel']);
+    // Generan o leen archivos: límite más estricto (20 por minuto y usuario).
+    Route::middleware('throttle:operaciones-costosas')->group(function () {
+        Route::get('/matrices/{matriz}/exportar/pdf', [ExportacionController::class, 'pdf']);
+        Route::get('/matrices/{matriz}/exportar/excel', [ExportacionController::class, 'excel']);
+    });
 
     // Auditoría: solo lectura (los registros los crea el sistema).
     Route::get('/auditoria', [AuditoriaController::class, 'index']);

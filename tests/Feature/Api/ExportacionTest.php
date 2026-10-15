@@ -6,6 +6,7 @@ use App\Models\Riesgo;
 use App\Services\Exportacion\DatosMatriz;
 use App\Services\Exportacion\ExcelMatriz;
 use App\Services\Exportacion\PdfMatriz;
+use App\Services\Importacion\ImportadorMatrices;
 use App\Services\SeguimientoService;
 use Database\Seeders\DatabaseSeeder;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
@@ -110,6 +111,19 @@ test('pdf html contains the header, the risks and escapes user content', functio
         ->toContain('&lt;script&gt;');
 });
 
+test('pdf follows the institutional template and carries the logo', function () {
+    $html = app(PdfMatriz::class)->html(app(DatosMatriz::class)->de($this->matriz));
+
+    expect($html)->toContain('data:image/png;base64,')
+        ->toContain('MATRIZ DE RIESGOS')
+        ->toContain('FECHA DE REVISIÓN:')
+        ->toContain('Abril-Junio 2026')
+        // Colores de la plantilla: grupos y nivel Alto.
+        ->toContain('#F4B184')
+        ->toContain('#FFD966')
+        ->toContain('#C5E0B4');
+});
+
 test('a draft is exported with a visible draft mark', function () {
     $borrador = Escenario::edicion(Escenario::proceso($this->compras, 'Otro'), 'Borrador', [['p' => 1, 'i' => 1]], EstadoMatriz::Borrador);
 
@@ -128,7 +142,7 @@ test('the pdf endpoint returns a pdf download and records it in the audit log', 
         ->toBe('PDF');
 });
 
-// --- Excel --------------------------------------------------------------------
+// --- Excel (misma hoja que las plantillas institucionales) -------------------
 
 /** Genera el .xlsx y lo vuelve a abrir, como lo haría Excel. */
 function hojaExportada(array $datos): Worksheet
@@ -143,37 +157,70 @@ function hojaExportada(array $datos): Worksheet
     }
 }
 
-test('excel reproduces the institutional header and column groups', function () {
+function relleno(Worksheet $hoja, string $celda): string
+{
+    return $hoja->getStyle($celda)->getFill()->getStartColor()->getRGB();
+}
+
+test('excel reproduces the institutional template header', function () {
     $hoja = hojaExportada(app(DatosMatriz::class)->de($this->matriz));
 
-    expect($hoja->getCell('A1')->getValue())->toBe('MATRIZ DE RIESGOS')
-        ->and($hoja->getCell('J1')->getValue())->toBe('RT-01-NI-ONA-156 Edición 1')
+    expect($hoja->getTitle())->toBe('Abril-Junio 2026')
+        ->and($hoja->getCell('A1')->getValue())->toBe('MATRIZ DE RIESGOS')
+        ->and($hoja->getStyle('A1')->getFont()->getSize())->toEqual(36)
+        ->and($hoja->getCell('K1')->getValue())->toBe("RT-01-NI-ONA-156\nEdición 1")
         ->and($hoja->getCell('A2')->getValue())->toBe('DIRECCIÓN: Administración y Finanzas')
-        ->and($hoja->getCell('E2')->getValue())->toBe('PROCESO: SP 4.3. Abastecimiento')
-        ->and($hoja->getCell('J2')->getValue())->toBe("FECHA DE REVISIÓN: 30 de junio de 2026\nEDICIÓN: Abril-Junio 2026")
-        ->and($hoja->getCell('A4')->getValue())->toBe('Identificación de Riesgos')
-        ->and($hoja->getCell('F4')->getValue())->toBe('Análisis de Riesgos')
-        ->and($hoja->getCell('J4')->getValue())->toBe('Seguimiento y Control de Riesgos')
-        ->and($hoja->getCell('A5')->getValue())->toBe('Actividad')
-        ->and($hoja->getCell('M5')->getValue())->toBe('Seguimiento/ Evidencias')
-        ->and($hoja->getMergeCells())->toHaveKeys(['A1:I1', 'J1:M1', 'A4:E4', 'F4:I4', 'J4:M4']);
+        ->and($hoja->getCell('C2')->getValue())->toBe('PROCESO: SP 4.3. Abastecimiento')
+        ->and($hoja->getCell('J2')->getValue())->toBe('FECHA DE REVISIÓN: 30 de junio de 2026')
+        ->and([relleno($hoja, 'A1'), relleno($hoja, 'A2')])->toBe(['F2F2F2', 'E7E6E6'])
+        ->and([$hoja->getCell('A3')->getValue(), $hoja->getCell('F3')->getValue(), $hoja->getCell('J3')->getValue()])
+        ->toBe(['Identificación de Riesgos', 'Análisis de Riesgos', 'Seguimiento y Control de Riesgos'])
+        ->and([relleno($hoja, 'A3'), relleno($hoja, 'F3'), relleno($hoja, 'J3')])->toBe(['F4B184', 'FFD966', 'C5E0B4'])
+        ->and($hoja->getCell('A4')->getValue())->toBe('Actividad')
+        ->and($hoja->getCell('M4')->getValue())->toBe('Seguimiento/ Evidencias')
+        ->and(array_keys($hoja->getMergeCells()))->toEqualCanonicalizing([
+            'A1:I1', 'K1:M1', 'A2:B2', 'C2:I2', 'J2:M2', 'A3:E3', 'F3:I3', 'J3:M3',
+            'A4:A5', 'B4:B5', 'C4:C5', 'D4:D5', 'E4:E5', 'F4:F5', 'G4:G5', 'H4:H5', 'I4:I5', 'J4:J5', 'K4:K5', 'L4:L5', 'M4:M5',
+        ])
+        ->and(round($hoja->getColumnDimension('M')->getWidth(), 1))->toBe(70.6);
 });
 
-test('excel has one row per risk with the effective level and its colour', function () {
+test('excel carries the institution logo at the top left', function () {
+    $dibujos = hojaExportada(app(DatosMatriz::class)->de($this->matriz))->getDrawingCollection();
+
+    expect($dibujos)->toHaveCount(1)
+        ->and($dibujos[0]->getCoordinates())->toBe('A1')
+        ->and($dibujos[0]->getName())->toBe('Logo INFOTEP');
+});
+
+test('excel has one row per risk from row 6 with the template level colours', function () {
     $hoja = hojaExportada(app(DatosMatriz::class)->de($this->matriz));
 
     expect($hoja->getCell('A6')->getValue())->toBe('Evaluación de ofertas de los oferentes')
-        ->and($hoja->getCell('B6')->getValue())->toBe('Adjudicaciones erróneas')
         ->and($hoja->getCell('C6')->getValue())->toBe('Administrativo / Personal')
         ->and($hoja->getCell('F6')->getValue())->toBe(3)
         ->and($hoja->getCell('G6')->getValue())->toBe(4)
         ->and($hoja->getCell('H6')->getValue())->toBe('Alto')
-        ->and($hoja->getStyle('H6')->getFill()->getStartColor()->getRGB())->toBe('F97316')
+        ->and(relleno($hoja, 'H6'))->toBe('F4B184')
         ->and($hoja->getCell('L6')->getValue())->toBe('Trimestral')
+        // Seguimiento como en la plantilla: azul y en negrita.
+        ->and($hoja->getStyle('M6')->getFont()->getColor()->getRGB())->toBe('2E75B5')
         // El ajuste manual queda indicado junto al nivel.
         ->and($hoja->getCell('H7')->getValue())->toStartWith('Moderado')
         ->and($hoja->getCell('H7')->getValue())->toContain('Ajustado')
+        ->and(relleno($hoja, 'H7'))->toBe('FFD966')
         ->and($hoja->getHighestRow())->toBe(7);
+});
+
+test('low and critical levels use the template colours', function () {
+    $proceso = Escenario::proceso($this->compras, 'Otro');
+    $matriz = Escenario::edicion($proceso, 'Extremos', [['p' => 1, 'i' => 1], ['p' => 4, 'i' => 4]]);
+
+    $hoja = hojaExportada(app(DatosMatriz::class)->de($matriz));
+
+    expect([$hoja->getCell('H6')->getValue(), relleno($hoja, 'H6')])->toBe(['Bajo', 'A9D18E'])
+        ->and([$hoja->getCell('H7')->getValue(), relleno($hoja, 'H7')])->toBe(['Crítico', 'C00000'])
+        ->and($hoja->getStyle('H7')->getFont()->getColor()->getRGB())->toBe('FFFFFF');
 });
 
 test('excel stores user text as plain strings, never as formulas', function () {
@@ -189,8 +236,34 @@ test('excel stores user text as plain strings, never as formulas', function () {
 test('a draft is exported to excel with a visible draft mark', function () {
     $borrador = Escenario::edicion(Escenario::proceso($this->compras, 'Otro'), 'Borrador', [['p' => 1, 'i' => 1]], EstadoMatriz::Borrador);
 
-    expect(hojaExportada(app(DatosMatriz::class)->de($borrador))->getCell('A3')->getValue())->toContain('BORRADOR')
-        ->and(hojaExportada(app(DatosMatriz::class)->de($this->matriz))->getCell('A3')->getValue())->toBeNull();
+    expect(hojaExportada(app(DatosMatriz::class)->de($borrador))->getCell('J1')->getValue())->toBe('BORRADOR')
+        ->and(hojaExportada(app(DatosMatriz::class)->de($this->matriz))->getCell('J1')->getValue())->toBeNull();
+});
+
+test('the sheet name is the edition, made valid for excel', function () {
+    $matriz = Escenario::edicion(Escenario::proceso($this->compras, 'Otro'), 'Ene/Mar 2026: revisión [final] del proceso de compras', [['p' => 1, 'i' => 1]]);
+
+    $titulo = hojaExportada(app(DatosMatriz::class)->de($matriz))->getTitle();
+
+    expect(strpbrk($titulo, '\\/?*[]:'))->toBeFalse()
+        ->and(mb_strlen($titulo))->toBeLessThanOrEqual(31)
+        ->and($titulo)->toStartWith('Ene-Mar 2026');
+});
+
+test('an exported excel can be imported back into a new process', function () {
+    $ruta = tempnam(sys_get_temp_dir(), 'xlsx').'.xlsx';
+    file_put_contents($ruta, app(ExcelMatriz::class)->generar(app(DatosMatriz::class)->de($this->matriz)));
+    $destino = Escenario::proceso($this->admision, 'Copia de Compras');
+
+    $plan = app(ImportadorMatrices::class)->analizar($ruta, $destino);
+    unlink($ruta);
+
+    expect($plan->errores)->toBe([])
+        ->and($plan->ediciones[0]['nombre'])->toBe('Abril-Junio 2026')
+        ->and($plan->ediciones[0]['fecha_revision'])->toBe('2026-06-30')
+        ->and($plan->ediciones[0]['riesgos'])->toHaveCount(2)
+        // El ajuste manual vuelve con su justificación original, no con la genérica.
+        ->and($plan->ediciones[0]['riesgos'][1]['datos']['justificacion_ajuste'])->toBe('Ajuste de prueba');
 });
 
 test('the excel endpoint returns an xlsx download and records it in the audit log', function () {

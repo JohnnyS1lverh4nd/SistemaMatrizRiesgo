@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Manual de usuario · Sistema de Gestión de Matrices de Riesgo</title>
+<style>
+    @page { margin: 70px 60px 60px 60px; }
+    body { font-family: "DejaVu Sans", sans-serif; font-size: 9.5pt; line-height: 1.45; color: #1f2430; }
+    h1 { color: #121462; font-size: 17pt; margin: 0 0 4px 0; padding-bottom: 6px; border-bottom: 3px solid #ecb53b; page-break-before: always; }
+    h2 { color: #121462; font-size: 12pt; margin: 18px 0 6px 0; }
+    h3 { color: #344393; font-size: 10.5pt; margin: 12px 0 4px 0; }
+    p { margin: 0 0 7px 0; }
+    ul, ol { margin: 0 0 8px 0; padding-left: 18px; }
+    li { margin-bottom: 3px; }
+    .boton { font-weight: bold; color: #121462; }
+    .pantalla { font-weight: bold; }
+    table { width: 100%; border-collapse: collapse; margin: 6px 0 10px 0; }
+    th { background: #121462; color: #ffffff; font-size: 8.5pt; padding: 5px; text-align: left; }
+    td { border: 0.6px solid #c9cdd8; padding: 4px 5px; font-size: 8.5pt; vertical-align: top; }
+    tr:nth-child(even) td { background: #f5f6fa; }
+    .si { text-align: center; color: #307007; font-weight: bold; }
+    .no { text-align: center; color: #9aa0ad; }
+    .nota { background: #fff7e0; border-left: 4px solid #ecb53b; padding: 6px 9px; margin: 8px 0; font-size: 8.8pt; }
+    .importante { background: #fdecec; border-left: 4px solid #c00000; padding: 6px 9px; margin: 8px 0; font-size: 8.8pt; }
+    .pasos { counter-reset: paso; }
+
+    /* Portada */
+    .portada { text-align: center; padding-top: 110px; }
+    .portada img { height: 150px; }
+    .portada .titulo { color: #121462; font-size: 26pt; font-weight: bold; margin-top: 50px; line-height: 1.2; }
+    .portada .subtitulo { font-size: 13pt; color: #344393; margin-top: 12px; }
+    .portada .linea { width: 120px; height: 4px; background: #ecb53b; margin: 26px auto; }
+    .portada .datos { font-size: 9.5pt; color: #4b5060; margin-top: 140px; line-height: 1.8; }
+
+    /* Índice */
+    .indice h1 { page-break-before: always; }
+    .toc td { border: none; border-bottom: 0.6px dotted #c9cdd8; background: none !important; font-size: 10.5pt; padding: 7px 4px; }
+    .toc .num { width: 6%; color: #121462; font-weight: bold; }
+    .toc .pag { width: 10%; text-align: right; color: #121462; font-weight: bold; }
+
+    /* Matriz de calor */
+    .calor td { text-align: center; font-weight: bold; width: 18%; }
+    .calor .eje { background: #f2f2f2; color: #1f2430; font-weight: bold; }
+    .bajo { background: #A9D18E !important; }
+    .moderado { background: #FFD966 !important; }
+    .alto { background: #F4B184 !important; }
+    .critico { background: #C00000 !important; color: #ffffff; }
+</style>
+</head>
+<body>
+
+<!-- ======================= PORTADA ======================= -->
+<div class="portada">
+    <img src="{{LOGO}}" alt="INFOTEP">
+    <div class="titulo">Sistema de Gestión de<br>Matrices de Riesgo</div>
+    <div class="subtitulo">Manual de usuario</div>
+    <div class="linea"></div>
+    <div class="datos">
+        Instituto Nacional de Formación Técnico Profesional (INFOTEP)<br>
+        Formulario de referencia RT-01-NI-ONA-156<br>
+        Versión 1.0 · {{FECHA}}
+    </div>
+</div>
+
+<!-- ======================= ÍNDICE ======================= -->
+<div class="indice">
+<h1>Contenido</h1>
+<table class="toc">
+    <tr><td class="num">1.</td><td>Introducción y conceptos</td><td class="pag">{{PAG_1}}</td></tr>
+    <tr><td class="num">2.</td><td>Primeros pasos: entrar, la sesión y la contraseña</td><td class="pag">{{PAG_2}}</td></tr>
+    <tr><td class="num">3.</td><td>Qué puede hacer cada rol</td><td class="pag">{{PAG_3}}</td></tr>
+    <tr><td class="num">4.</td><td>Consultar: Inicio, matrices, reportes y comparaciones</td><td class="pag">{{PAG_4}}</td></tr>
+    <tr><td class="num">5.</td><td>Encargado de Departamento: ediciones y riesgos</td><td class="pag">{{PAG_5}}</td></tr>
+    <tr><td class="num">6.</td><td>Seguimiento y evidencias</td><td class="pag">{{PAG_6}}</td></tr>
+    <tr><td class="num">7.</td><td>Administrador</td><td class="pag">{{PAG_7}}</td></tr>
+    <tr><td class="num">8.</td><td>Preguntas frecuentes y mensajes del sistema</td><td class="pag">{{PAG_8}}</td></tr>
+</table>
+</div>
+
+<!-- ======================= 1 ======================= -->
+<h1>1. Introducción y conceptos</h1>
+
+<p>El <strong>Sistema de Gestión de Matrices de Riesgo</strong> reemplaza los archivos Excel que cada departamento usaba para registrar sus riesgos con el formulario institucional <strong>RT-01-NI-ONA-156</strong>. Toda la información queda en un solo lugar: se puede consultar el estado de todos los departamentos, dar seguimiento a cada riesgo, comparar periodos y saber quién hizo cada cambio y cuándo.</p>
+
+<p>El sistema se usa desde el navegador (Chrome, Edge o Firefox recientes) y no requiere instalar nada.</p>
+
+<h2>Conceptos que conviene conocer</h2>
+
+<table>
+    <tr><th style="width: 24%;">Concepto</th><th>Qué es</th></tr>
+    <tr><td><strong>Departamento</strong></td><td>Dirección o área de la institución (por ejemplo, Compras o Formación Profesional).</td></tr>
+    <tr><td><strong>Proceso</strong></td><td>Cada departamento tiene uno o más procesos, y cada proceso tiene su propia matriz de riesgos.</td></tr>
+    <tr><td><strong>Edición</strong></td><td>Una versión de la matriz de un proceso en un periodo: equivale a una hoja del Excel (por ejemplo, «Abril-Junio 2026» o «Edición 3»). Las ediciones anteriores se conservan: nunca se sobrescriben.</td></tr>
+    <tr><td><strong>Riesgo</strong></td><td>Cada fila de la matriz, con los mismos campos del formulario: actividad, riesgo, factor, causas, control actual, probabilidad, impacto, nivel, síntoma, tratamiento, responsable y periodicidad.</td></tr>
+    <tr><td><strong>Nivel de riesgo</strong></td><td>Bajo, Moderado, Alto o Crítico. El sistema lo calcula solo, a partir de la probabilidad y el impacto (ver la matriz de calor más abajo).</td></tr>
+    <tr><td><strong>Seguimiento</strong></td><td>Registro de los avances de un riesgo, con fecha y, si hace falta, archivos de evidencia. Forma un historial que no se borra.</td></tr>
+    <tr><td><strong>Tratamiento</strong></td><td>Estado de las acciones sobre el riesgo: <em>Pendiente</em>, <em>En progreso</em> o <em>Cumplido</em>.</td></tr>
+</table>
+
+<h2>Estados de una edición</h2>
+
+<table>
+    <tr><th style="width: 18%;">Estado</th><th>Qué significa</th><th style="width: 30%;">¿Se puede modificar?</th></tr>
+    <tr><td><strong>Borrador</strong></td><td>Edición en preparación. Todavía no cuenta en los reportes.</td><td>Sí: se agregan, editan y eliminan riesgos.</td></tr>
+    <tr><td><strong>Vigente</strong></td><td>La edición en uso del proceso. Solo hay una por proceso. Es la que aparece en el Inicio y en los reportes.</td><td>No. Solo se registran seguimientos.</td></tr>
+    <tr><td><strong>Archivada</strong></td><td>Una edición anterior, conservada como historial.</td><td>No. Se puede consultar, comparar y exportar.</td></tr>
+</table>
+
+<div class="nota">Al <strong>publicar</strong> un borrador, pasa a ser la edición vigente y la vigente anterior se archiva automáticamente. Para reevaluar los riesgos de un proceso se crea una <strong>edición nueva</strong>, normalmente a partir de la vigente.</div>
+
+<h2>Cómo se calcula el nivel: la matriz de calor</h2>
+
+<p>La probabilidad y el impacto se valoran del 1 al 4. Cada combinación corresponde a un nivel:</p>
+
+<table class="calor" style="width: 82%;">
+    <tr><td class="eje">Probabilidad \ Impacto</td><td class="eje">1</td><td class="eje">2</td><td class="eje">3</td><td class="eje">4</td></tr>
+    <tr><td class="eje">4</td><td class="moderado">Moderado</td><td class="moderado">Moderado</td><td class="alto">Alto</td><td class="critico">Crítico</td></tr>
+    <tr><td class="eje">3</td><td class="bajo">Bajo</td><td class="moderado">Moderado</td><td class="moderado">Moderado</td><td class="alto">Alto</td></tr>
+    <tr><td class="eje">2</td><td class="bajo">Bajo</td><td class="bajo">Bajo</td><td class="moderado">Moderado</td><td class="moderado">Moderado</td></tr>
+    <tr><td class="eje">1</td><td class="bajo">Bajo</td><td class="bajo">Bajo</td><td class="bajo">Bajo</td><td class="moderado">Moderado</td></tr>
+</table>
+
+<p>Esta es la tabla inicial. El Administrador puede cambiarla en <span class="pantalla">Catálogos → Matriz de calor</span>. Si para un riesgo concreto el nivel calculado no refleja la realidad, el encargado puede <strong>ajustarlo manualmente con una justificación</strong>; el sistema conserva los dos valores (calculado y ajustado).</p>
+
+<!-- ======================= 2 ======================= -->
+<h1>2. Primeros pasos: entrar, la sesión y la contraseña</h1>
+
+<h2>Entrar al sistema</h2>
+<ol>
+    <li>Abra la dirección del sistema que le indique el área de Tecnología.</li>
+    <li>Escriba su <strong>Correo electrónico</strong> y su <strong>Contraseña</strong>.</li>
+    <li>Pulse <span class="boton">Entrar</span>.</li>
+</ol>
+<p>Las cuentas las crea el Administrador: no hay registro abierto. Si escribe mal la contraseña varias veces seguidas, el sistema le pedirá esperar un minuto antes de intentarlo de nuevo.</p>
+
+<h2>El menú</h2>
+<p>A la izquierda está el menú principal. Cada persona ve solo las opciones de su rol:</p>
+<ul>
+    <li><span class="pantalla">Inicio</span>, <span class="pantalla">Matrices de riesgo</span> y <span class="pantalla">Reportes</span>: todos los roles.</li>
+    <li><span class="pantalla">Departamentos</span>, <span class="pantalla">Catálogos</span> y <span class="pantalla">Usuarios</span>: Administrador.</li>
+    <li><span class="pantalla">Auditoría</span>: Administrador y Auditor.</li>
+    <li><span class="pantalla">Cambiar contraseña</span> y <span class="boton">Cerrar sesión</span>: todos, al pie del menú.</li>
+</ul>
+<p>El menú se puede contraer para ganar espacio. Al pie también está el interruptor <strong>Modo oscuro</strong>, que cambia los colores de la pantalla; la preferencia se recuerda en ese navegador.</p>
+
+<h2>La sesión se cierra por inactividad</h2>
+<p>Por seguridad, la sesión se cierra tras <strong>4 minutos sin actividad</strong>. Un minuto antes aparece el aviso <em>«Tu sesión está por cerrarse»</em>:</p>
+<ul>
+    <li><span class="boton">Seguir conectado</span> mantiene la sesión.</li>
+    <li><span class="boton">Cerrar sesión</span> la termina en ese momento.</li>
+</ul>
+<div class="nota">Si la sesión ya se cerró, vuelva a entrar. Los cambios que se guardaron antes del cierre no se pierden; lo que estaba escrito en un formulario sin guardar, sí.</div>
+
+<h2>Olvidé mi contraseña</h2>
+<ol>
+    <li>En la pantalla de entrada, pulse <span class="boton">¿Olvidaste tu contraseña?</span></li>
+    <li>Escriba su <strong>Correo electrónico</strong> y pulse <span class="boton">Enviar enlace</span>.</li>
+    <li>Abra el correo «Restablecer contraseña» y pulse el botón del mensaje. El enlace caduca a los 60 minutos.</li>
+    <li>Escriba la <strong>Nueva contraseña</strong>, confírmela y pulse <span class="boton">Guardar contraseña</span>.</li>
+</ol>
+<p>Por seguridad, el sistema muestra el mismo mensaje exista o no la cuenta. Si no recibe el correo, revise la carpeta de correo no deseado o consulte al Administrador.</p>
+
+<h2>Cambiar la contraseña</h2>
+<p>En el menú, <span class="pantalla">Cambiar contraseña</span>: escriba la <strong>Contraseña actual</strong>, la <strong>Nueva contraseña</strong> y su confirmación.</p>
+<div class="nota"><strong>Requisitos de la contraseña:</strong> al menos <strong>8 caracteres</strong>, con mayúsculas, minúsculas, números y símbolos (por ejemplo <em>Riesgo-Dro-26</em>). Tampoco se aceptan contraseñas que hayan aparecido en filtraciones de datos conocidas; si el sistema la rechaza por ese motivo, elija otra.</div>
+
+<!-- ======================= 3 ======================= -->
+<h1>3. Qué puede hacer cada rol</h1>
+
+<p>Los <strong>encargados</strong> trabajan solo con los departamentos que el Administrador les asignó. El Administrador, el Auditor y la Dirección consultan todos los departamentos.</p>
+
+<table>
+    <tr>
+        <th style="width: 34%;">Acción</th>
+        <th style="width: 13%;">Administrador</th>
+        <th style="width: 14%;">Encargado de Departamento</th>
+        <th style="width: 14%;">Encargado de Seguimiento</th>
+        <th style="width: 12%;">Auditor</th>
+        <th style="width: 13%;">Dirección</th>
+    </tr>
+    <tr><td>Ver Inicio, matrices y reportes</td><td class="si">Todos</td><td class="si">Los suyos</td><td class="si">Los suyos</td><td class="si">Todos</td><td class="si">Todos</td></tr>
+    <tr><td>Comparar ediciones y exportar a PDF o Excel</td><td class="si">Sí</td><td class="si">Sí</td><td class="si">Sí</td><td class="si">Sí</td><td class="si">Sí</td></tr>
+    <tr><td>Crear ediciones, registrar riesgos, publicar y archivar</td><td class="si">Sí</td><td class="si">Sí</td><td class="no">No</td><td class="no">No</td><td class="no">No</td></tr>
+    <tr><td>Registrar seguimientos y evidencias</td><td class="si">Sí</td><td class="si">Sí</td><td class="si">Sí</td><td class="no">No</td><td class="no">No</td></tr>
+    <tr><td>Ver la auditoría (registro de cambios)</td><td class="si">Sí</td><td class="no">No</td><td class="no">No</td><td class="si">Sí</td><td class="no">No</td></tr>
+    <tr><td>Usuarios, departamentos, procesos y catálogos</td><td class="si">Sí</td><td class="no">No</td><td class="no">No</td><td class="no">No</td><td class="no">No</td></tr>
+    <tr><td>Importar matrices desde Excel</td><td class="si">Sí</td><td class="no">No</td><td class="no">No</td><td class="no">No</td><td class="no">No</td></tr>
+</table>
+
+<p>En cada pantalla, el sistema muestra solo los botones que su rol permite usar.</p>
+
+<!-- ======================= 4 ======================= -->
+<h1>4. Consultar: Inicio, matrices, reportes y comparaciones</h1>
+
+<h2>Inicio</h2>
+<p>Resume los riesgos de las <strong>ediciones vigentes</strong> de los departamentos que usted puede ver. Con el selector <strong>Departamento</strong> puede limitarlo a uno solo.</p>
+<ul>
+    <li><strong>Indicadores:</strong> <em>Riesgos vigentes</em>, <em>Críticos y altos pendientes</em> (tratamiento no cumplido), <em>Seguimientos atrasados</em> (sin seguimiento en el plazo de su periodicidad) y <em>Tratamientos cumplidos</em>.</li>
+    <li><strong>Riesgos por nivel:</strong> cuántos riesgos hay de cada nivel.</li>
+    <li><strong>Mapa de calor:</strong> cuántos riesgos hay en cada combinación de probabilidad e impacto.</li>
+    <li><strong>Estado del tratamiento:</strong> pendientes, en progreso y cumplidos.</li>
+    <li><strong>Por departamento:</strong> resumen de cada departamento y sus procesos.</li>
+</ul>
+<p>El botón <span class="boton">Reporte de riesgos</span> abre el listado detallado.</p>
+
+<h2>Matrices de riesgo</h2>
+<p>Muestra sus departamentos con sus procesos. Al abrir un proceso se ve la lista de sus <strong>ediciones</strong> con su estado (borrador, vigente o archivada) y la edición de la que se creó cada una.</p>
+<p>El botón <span class="boton">Riesgos</span> de una edición abre la matriz: una fila por riesgo, con su nivel en color. En cada riesgo:</p>
+<ul>
+    <li><span class="boton">Ver riesgo</span> (o <span class="boton">Editar riesgo</span> en un borrador) muestra todos sus campos.</li>
+    <li><span class="boton">Seguimiento</span> abre el historial de avances y evidencias (sección 6).</li>
+    <li><span class="boton">Historial</span> muestra quién cambió qué y cuándo.</li>
+    <li>Una mano junto al nivel indica que fue <strong>ajustado manualmente</strong>; al pasar el ratón se ve el nivel calculado y la justificación.</li>
+</ul>
+
+<h2>Exportar a PDF o Excel</h2>
+<p>Dentro de una edición, el botón <span class="boton">Exportar</span> ofrece <strong>PDF</strong> y <strong>Excel</strong>. Los dos usan el formato institucional RT-01-NI-ONA-156 con el logo de INFOTEP: el mismo encabezado, los grupos de columnas en color y el nivel de cada riesgo con su color. En el Excel, el nombre de la hoja es la edición, como en los archivos originales. Un borrador se exporta con la marca <strong>BORRADOR</strong>.</p>
+
+<h2>Reportes</h2>
+<p>Lista los riesgos de todos sus departamentos, los más graves primero, con filtros combinables:</p>
+<ul>
+    <li><strong>Departamento</strong>, <strong>Proceso</strong>, <strong>Factor</strong>, <strong>Nivel</strong>, <strong>Responsable</strong> y <strong>Tratamiento</strong>.</li>
+    <li><strong>Revisión desde / hasta</strong>: incluye también ediciones archivadas de ese periodo.</li>
+    <li><strong>Solo críticos y altos pendientes</strong> y <strong>Solo seguimientos atrasados</strong>.</li>
+</ul>
+<p>Pulse <span class="boton">Aplicar filtros</span>; <span class="boton">Limpiar</span> los quita. Cada fila permite <strong>abrir la matriz del riesgo</strong>.</p>
+
+<h2>Comparar ediciones</h2>
+<p>En un proceso con al menos dos ediciones publicadas, <span class="boton">Comparar ediciones</span> muestra, entre una <strong>edición base (anterior)</strong> y una <strong>edición a comparar (nueva)</strong>:</p>
+<ul>
+    <li>los riesgos <strong>agregados</strong> en la nueva;</li>
+    <li>los riesgos <strong>cerrados</strong> (que ya no están);</li>
+    <li>los <strong>cambios de nivel</strong>, indicando si el riesgo sube o baja.</li>
+</ul>
+
+<!-- ======================= 5 ======================= -->
+<h1>5. Encargado de Departamento: ediciones y riesgos</h1>
+
+<p>Esta sección también aplica al Administrador, que puede hacer lo mismo en todos los departamentos.</p>
+
+<h2>Crear una edición</h2>
+<p>En <span class="pantalla">Matrices de riesgo</span>, abra el proceso. Hay dos formas:</p>
+<ul>
+    <li><span class="boton">Nueva edición desde aquí</span> (en una edición existente, normalmente la vigente): crea un borrador con <strong>copia de todos sus riesgos</strong>. Es la forma habitual de preparar el periodo siguiente: solo se actualiza lo que cambió, y el sistema puede comparar después las dos ediciones.</li>
+    <li><span class="boton">Nueva edición</span>: crea un borrador vacío.</li>
+</ul>
+<p>En los dos casos se indica el <strong>Nombre de la edición</strong> (como la pestaña del Excel, por ejemplo «Julio-Septiembre 2026») y la <strong>Fecha de revisión</strong>. El nombre no puede repetirse dentro del proceso.</p>
+
+<h2>Registrar un riesgo</h2>
+<ol>
+    <li>En la edición en borrador, pulse <span class="boton">Nuevo riesgo</span>.</li>
+    <li>Complete los campos. Son obligatorios <strong>Actividad</strong> y <strong>Riesgo</strong>; el resto son los del formulario: <strong>Factores</strong> (puede marcar varios, por ejemplo Personal y Tecnológico), <strong>Causas</strong>, <strong>Control actual</strong>, <strong>Probabilidad</strong>, <strong>Impacto</strong>, <strong>Síntoma</strong>, <strong>Tratamiento</strong>, <strong>Responsable</strong> (unidades o cargos, como en el Excel) y <strong>Periodicidad</strong>.</li>
+    <li>Al elegir probabilidad e impacto, el sistema muestra el <strong>nivel calculado</strong>.</li>
+    <li>Pulse <span class="boton">Registrar riesgo</span>.</li>
+</ol>
+
+<h3>Ajustar el nivel manualmente</h3>
+<p>Marque <strong>Ajustar el nivel manualmente</strong>, elija el <strong>Nivel ajustado</strong> y escriba la <strong>Justificación del ajuste</strong> (obligatoria). El nivel ajustado debe ser distinto del calculado.</p>
+
+<h3>Modificar o eliminar riesgos</h3>
+<p>Mientras la edición esté en borrador: <span class="boton">Editar riesgo</span> para cambiarlo (el nivel se recalcula) y <span class="boton">Eliminar riesgo</span> para quitarlo.</p>
+
+<h2>Publicar la edición</h2>
+<p>Cuando el borrador esté completo, pulse <span class="boton">Publicar</span> en la lista de ediciones del proceso y confirme.</p>
+<ul>
+    <li>Todos los riesgos deben tener probabilidad e impacto; si falta alguno, el sistema lo indica.</li>
+    <li>La edición pasa a <strong>vigente</strong> y la vigente anterior se <strong>archiva</strong>.</li>
+</ul>
+<div class="importante">Una edición publicada <strong>ya no se puede modificar</strong>: así se conserva exactamente lo que estuvo vigente. Para corregir o reevaluar, cree una edición nueva desde ella.</div>
+
+<h2>Otras acciones sobre las ediciones</h2>
+<ul>
+    <li><span class="boton">Editar</span>: cambia el nombre o la fecha de un borrador.</li>
+    <li><span class="boton">Descartar</span>: elimina un borrador que nunca se publicó.</li>
+    <li><span class="boton">Archivar</span>: retira la edición vigente sin publicar otra (el proceso queda sin edición vigente). Normalmente no hace falta: publicar una edición nueva ya archiva la anterior.</li>
+</ul>
+
+<!-- ======================= 6 ======================= -->
+<h1>6. Seguimiento y evidencias</h1>
+
+<p>Pueden registrar seguimientos el Administrador y los Encargados de Departamento y de Seguimiento, en sus departamentos. El seguimiento se hace sobre los riesgos de la <strong>edición vigente</strong>.</p>
+
+<h2>Registrar un seguimiento</h2>
+<ol>
+    <li>Abra la edición vigente y, en el riesgo, pulse <span class="boton">Seguimiento</span>.</li>
+    <li>Indique la <strong>Fecha</strong> del avance (no puede ser futura) y la <strong>Descripción</strong>.</li>
+    <li>Si corresponde, marque <strong>Cambiar estado del tratamiento</strong> y elija Pendiente, En progreso o Cumplido.</li>
+    <li>En <strong>Evidencias</strong>, adjunte los archivos de respaldo: hasta <strong>5 archivos</strong> de hasta <strong>10 MB</strong> cada uno, en formato PDF, imagen (JPG o PNG) o Excel.</li>
+    <li>Pulse <span class="boton">Registrar seguimiento</span>.</li>
+</ol>
+<p>Los seguimientos aparecen en el histórico del riesgo, el más reciente primero. Las evidencias se descargan desde el propio seguimiento.</p>
+
+<h2>Corregir un seguimiento: anular</h2>
+<p>El histórico no se edita ni se borra. Si un seguimiento se registró por error, pulse <span class="boton">Anular</span>, escriba el <strong>Motivo</strong> y confirme. El registro sigue visible, marcado como <strong>Anulado</strong>, y se puede registrar uno correcto.</p>
+
+<h2>Seguimientos atrasados</h2>
+<p>Un riesgo está <strong>atrasado</strong> si su tratamiento no está cumplido y no tiene seguimiento dentro del plazo de su periodicidad (por ejemplo, 90 días para «Trimestral»). Los riesgos con periodicidad «Cuando ocurra» o «Por cada módulo» no tienen plazo fijo. Los atrasados se ven en el Inicio y con el filtro <strong>Solo seguimientos atrasados</strong> de Reportes.</p>
+
+<!-- ======================= 7 ======================= -->
+<h1>7. Administrador</h1>
+
+<h2>Usuarios</h2>
+<p>En <span class="pantalla">Usuarios</span>:</p>
+<ul>
+    <li><span class="boton">Nuevo usuario</span>: nombre, correo, contraseña inicial, <strong>rol</strong> y <strong>departamentos</strong> asignados (necesarios para los encargados).</li>
+    <li><span class="boton">Editar</span>: cambia los datos, el rol, los departamentos o la contraseña.</li>
+    <li><span class="boton">Desactivar</span> / <span class="boton">Reactivar</span>: un usuario desactivado no puede entrar. Las cuentas no se borran, para conservar el historial de lo que hicieron.</li>
+</ul>
+<div class="nota">Un administrador no puede desactivarse ni quitarse el rol a sí mismo: así el sistema nunca se queda sin nadie que pueda gestionarlo.</div>
+
+<h2>Departamentos y procesos</h2>
+<p>En <span class="pantalla">Departamentos</span>: <span class="boton">Nuevo departamento</span>, <span class="boton">Editar</span> y <span class="boton">Desactivar</span>. Con <span class="boton">Procesos</span> se gestionan los procesos del departamento (<span class="boton">Nuevo proceso</span>, <span class="boton">Editar</span>, <span class="boton">Desactivar</span>).</p>
+<p>Nada se borra: un departamento o proceso <strong>desactivado</strong> deja de contar en el Inicio y en los reportes, pero sus ediciones se conservan. En un departamento inactivo no se pueden crear procesos.</p>
+
+<h2>Catálogos</h2>
+<table>
+    <tr><th style="width: 24%;">Catálogo</th><th>Para qué</th></tr>
+    <tr><td><strong>Factores de riesgo</strong></td><td>Administrativo, Personal, Tecnológico, etc. Se pueden agregar y desactivar.</td></tr>
+    <tr><td><strong>Periodicidades</strong></td><td>Diario, Mensual, Trimestral, etc., con su plazo en días para detectar seguimientos atrasados (sin plazo: «Cuando ocurra»).</td></tr>
+    <tr><td><strong>Niveles de riesgo</strong></td><td>Nombre y color de Bajo, Moderado, Alto y Crítico en la pantalla.</td></tr>
+    <tr><td><strong>Escalas P / I</strong></td><td>Nombre de cada valor 1–4 de probabilidad e impacto.</td></tr>
+    <tr><td><strong>Matriz de calor</strong></td><td>Qué nivel corresponde a cada combinación de probabilidad e impacto. Al cambiarla se recalculan los borradores; las ediciones publicadas no cambian.</td></tr>
+</table>
+
+<h2>Importar una matriz desde Excel</h2>
+<p>Sirve para cargar las matrices que hoy están en Excel con el formato RT-01-NI-ONA-156.</p>
+<ol>
+    <li>Cree el departamento y el proceso si no existen.</li>
+    <li>Abra el proceso y pulse <span class="boton">Importar desde Excel</span>.</li>
+    <li>Elija el archivo .xlsx (máximo 5 MB) y pulse <span class="boton">Analizar</span>. El sistema muestra, sin guardar nada, las ediciones que encontró (una por hoja), los riesgos, los seguimientos y los ajustes de nivel, más los <strong>errores</strong> y <strong>avisos</strong> con la hoja y la fila exactas.</li>
+    <li>Si no hay errores, pulse <span class="boton">Importar</span>. La edición más reciente queda vigente y las anteriores, archivadas.</li>
+</ol>
+<div class="nota">
+    <strong>Tenga en cuenta:</strong>
+    <ul>
+        <li>Solo se puede importar en un proceso <strong>sin ediciones</strong>. Si ya tiene alguna, el botón aparece desactivado y explica el motivo: para ese proceso, cree una edición nueva o clone una existente.</li>
+        <li>Si un factor o una periodicidad del Excel no existe en los catálogos, la importación se detiene: agréguelo en Catálogos y vuelva a analizar.</li>
+        <li>Si el nivel del Excel no coincide con la matriz de calor, se importa como ajuste manual justificado (aparece como aviso).</li>
+        <li>Un Excel exportado por el propio sistema también se puede importar.</li>
+    </ul>
+</div>
+
+<h2>Auditoría</h2>
+<p>En <span class="pantalla">Auditoría</span> (Administrador y Auditor) está el registro de todos los cambios: quién, qué, cuándo y los valores anteriores y nuevos. Incluye inicios y cierres de sesión, publicaciones, exportaciones e importaciones. Se puede filtrar por <strong>Registro</strong>, <strong>Operación</strong> y fechas (<strong>Desde</strong> / <strong>Hasta</strong>). Los registros de auditoría no se pueden modificar.</p>
+
+<!-- ======================= 8 ======================= -->
+<h1>8. Preguntas frecuentes y mensajes del sistema</h1>
+
+<table>
+    <tr><th style="width: 38%;">Situación o mensaje</th><th>Qué significa y qué hacer</th></tr>
+    <tr><td>«No tiene departamentos asignados.»</td><td>Su cuenta de encargado aún no tiene departamentos. Pida al Administrador que se los asigne.</td></tr>
+    <tr><td>No puedo modificar los riesgos de una edición.</td><td>La edición está publicada o archivada y no admite cambios. Cree una edición nueva desde ella (<span class="boton">Nueva edición desde aquí</span>).</td></tr>
+    <tr><td>No puedo publicar el borrador.</td><td>Algún riesgo no tiene probabilidad o impacto. Complételo y vuelva a publicar.</td></tr>
+    <tr><td>El botón «Importar desde Excel» está desactivado.</td><td>El proceso ya tiene ediciones. Solo se importa en procesos sin historial.</td></tr>
+    <tr><td>«Tu sesión ha expirado. Vuelve a iniciar sesión.»</td><td>Pasaron 4 minutos sin actividad. Vuelva a entrar.</td></tr>
+    <tr><td>«Demasiadas solicitudes. Espera un momento…»</td><td>Se hicieron muchas operaciones seguidas (por ejemplo, más de 20 exportaciones en un minuto). Espere un minuto y repita.</td></tr>
+    <tr><td>«No tienes permiso para realizar esta acción.»</td><td>Su rol o sus departamentos no permiten esa operación. Si debería poder hacerla, consulte al Administrador.</td></tr>
+    <tr><td>La contraseña nueva no se acepta.</td><td>Debe tener al menos 8 caracteres con mayúsculas, minúsculas, números y símbolos, y no figurar en filtraciones conocidas. El mensaje bajo el campo indica qué falta.</td></tr>
+    <tr><td>No llega el correo para restablecer la contraseña.</td><td>Revise el correo no deseado y que escribió bien su correo. El enlace caduca a los 60 minutos; puede pedir otro.</td></tr>
+    <tr><td>Un seguimiento se registró con un error.</td><td>No se edita: anúlelo con un motivo y registre uno nuevo.</td></tr>
+</table>
+
+<p style="margin-top: 16px;">Para dudas o problemas que no aparezcan aquí, contacte al Administrador del sistema.</p>
+
+</body>
+</html>

@@ -76,7 +76,7 @@ class DatosMatriz
             'control_actual' => $riesgo->control_actual,
             'probabilidad' => $riesgo->probabilidad,
             'impacto' => $riesgo->impacto,
-            'nivel' => $nivel ? ['nombre' => $nivel->nombre, 'color' => $nivel->color] : null,
+            'nivel' => $nivel ? ['nombre' => $nivel->nombre, 'slug' => $nivel->slug, 'color' => $nivel->color] : null,
             'nivel_ajustado' => $riesgo->nivel_ajustado_id !== null,
             'justificacion_ajuste' => $riesgo->justificacion_ajuste,
             'sintoma' => $riesgo->sintoma,

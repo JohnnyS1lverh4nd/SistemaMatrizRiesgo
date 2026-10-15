@@ -288,10 +288,21 @@ class ImportadorMatrices
             return [null, null];
         }
 
-        $nivel = $this->niveles->get($this->clave($nivelExcel));
+        // Un Excel exportado por el sistema añade "Ajustado: <justificación>"
+        // en otra línea de la misma celda: el nivel es la primera.
+        $lineas = explode("\n", $nivelExcel);
+        $nombreNivel = trim($lineas[0]);
+        $justificacionExcel = null;
+        foreach (array_slice($lineas, 1) as $linea) {
+            if (preg_match('/^\s*Ajustado:\s*(.+)$/u', $linea, $m)) {
+                $justificacionExcel = trim($m[1]);
+            }
+        }
+
+        $nivel = $this->niveles->get($this->clave($nombreNivel));
 
         if ($nivel === null) {
-            $this->errores[] = "{$lugar}: el nivel \"{$nivelExcel}\" no existe en el catálogo.";
+            $this->errores[] = "{$lugar}: el nivel \"{$nombreNivel}\" no existe en el catálogo.";
 
             return [null, null];
         }
@@ -302,7 +313,7 @@ class ImportadorMatrices
 
         $this->avisos[] = "{$lugar}: el Excel indica {$nivel->nombre} y la matriz de calor calcula {$calculado->nombre}; se importa como ajuste manual.";
 
-        return [$nivel->id, (string) config('importacion.justificacion_nivel')];
+        return [$nivel->id, $justificacionExcel ?? (string) config('importacion.justificacion_nivel')];
     }
 
     /**

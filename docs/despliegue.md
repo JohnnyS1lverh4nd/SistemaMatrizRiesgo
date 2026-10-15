@@ -166,9 +166,32 @@ DB_CONNECTION=mariadb DB_HOST=127.0.0.1 DB_PORT=33306 DB_DATABASE=testing \
 docker stop mariadb-pruebas
 ```
 
+## Seguridad
+
+| Medida | Dónde |
+|---|---|
+| HTTPS obligatorio; HSTS, `nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy` | `docker/nginx/default.conf` |
+| **CSP** con los hashes SHA-256 de los scripts en línea de cada build (sin `unsafe-inline` ni `unsafe-eval` para scripts) | `scripts/csp-nginx.mjs` (frontend) → `00-csp.conf` en la imagen web |
+| Cookies de sesión `Secure`, `HttpOnly`, `SameSite=Lax`, sesión cifrada, 4 min de inactividad | `docker/produccion.env` |
+| Límites de peticiones por usuario: API 300/min; exportar e importar 20/min; login y recuperación 5/min | `AppServiceProvider`, `FortifyServiceProvider` |
+| Contraseñas: mínimo 8 caracteres con mayúsculas, minúsculas, números y símbolos; sin filtraciones conocidas | `AppServiceProvider` |
+| Sin versión de Nginx ni de PHP en las respuestas; `APP_DEBUG=false` | `default.conf`, `php.ini`, `produccion.env` |
+| La imagen de la API no incluye dependencias de desarrollo, pruebas ni `.env`; se ejecuta como `www-data` | `docker/php/Dockerfile`, `.dockerignore` |
+| Base de datos sin puerto expuesto | `compose.yaml` |
+
+Si la estructura de la página cambia y el navegador muestra errores de
+"Content-Security-Policy" en la consola, revise `scripts/csp-nginx.mjs`.
+
+### Dependencias
+
+- `composer audit --no-dev`: sin vulnerabilidades (15/10/2026).
+- `npm audit`: quedan 12 avisos (11 altos, 1 bajo) **solo en herramientas de
+  desarrollo y construcción** (servidor de desarrollo de Nuxt/Nitro,
+  `node-forge`, `braces`/`micromatch`, `esbuild`). No llegan a producción: la
+  imagen web solo contiene archivos estáticos. No hay versión corregida (npm
+  propone *bajar* Nuxt a 4.1.3); revisar al actualizar Nuxt.
+
 ## Pendiente
 
-- Política de seguridad de contenido (CSP): requiere revisar en el navegador
-  los scripts que Nuxt genera.
 - Si la institución termina HTTPS en un proxy propio delante de este
   servidor, hay que configurar los proxies de confianza de Laravel.

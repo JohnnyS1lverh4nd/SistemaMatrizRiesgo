@@ -8,9 +8,12 @@ use Carbon\CarbonImmutable;
 use Illuminate\Auth\Events\Failed;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Events\Logout;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 
@@ -31,6 +34,20 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->configureDefaults();
         $this->auditarAutenticacion();
+        $this->limitarPeticiones();
+    }
+
+    /**
+     * Límites por usuario (o por IP si no hay sesión). "api" se aplica a todo
+     * el grupo api; "operaciones-costosas" a exportar e importar, que generan
+     * archivos y pueden saturar el servidor.
+     */
+    protected function limitarPeticiones(): void
+    {
+        $clave = fn (Request $request): string => (string) ($request->user()?->getAuthIdentifier() ?? $request->ip());
+
+        RateLimiter::for('api', fn (Request $request) => Limit::perMinute(300)->by($clave($request)));
+        RateLimiter::for('operaciones-costosas', fn (Request $request) => Limit::perMinute(20)->by($clave($request)));
     }
 
     /**
@@ -68,8 +85,10 @@ class AppServiceProvider extends ServiceProvider
             app()->isProduction(),
         );
 
+        // Producción: mínimo 8 caracteres (decisión oct. 2026) con mayúsculas,
+        // minúsculas, números, símbolos y sin filtraciones conocidas.
         Password::defaults(fn (): ?Password => app()->isProduction()
-            ? Password::min(12)
+            ? Password::min(8)
                 ->mixedCase()
                 ->letters()
                 ->numbers()

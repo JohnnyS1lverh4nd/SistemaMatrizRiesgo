@@ -2,36 +2,37 @@
 
 namespace App\Services\Exportacion;
 
+use Illuminate\Support\Str;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
 use PhpOffice\PhpSpreadsheet\Worksheet\PageSetup;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 /**
- * Excel (.xlsx) de una edición con el formato institucional, misma
- * distribución que los archivos originales y que el PDF:
- *   fila 1  título + código del formulario
- *   fila 2  Dirección · Proceso · Fecha de revisión y edición
- *   fila 3  marca BORRADOR (vacía si la edición está publicada)
- *   fila 4  grupos de columnas
- *   fila 5  columnas
+ * Excel (.xlsx) de una edición con la misma hoja que las plantillas
+ * institucionales RT-01-NI-ONA-156 (FormatoInstitucional):
+ *   fila 1  logo · "MATRIZ DE RIESGOS" · [BORRADOR] · código del formulario
+ *   fila 2  Dirección · Proceso · Fecha de revisión
+ *   fila 3  grupos de columnas (naranja, amarillo, verde)
+ *   filas 4-5  columnas
  *   fila 6… un riesgo por fila
+ * Como en los originales, la edición es el nombre de la hoja. Un archivo
+ * exportado se puede volver a importar (ImportadorMatrices).
  */
 class ExcelMatriz
 {
-    private const FILA_GRUPOS = 4;
-
-    private const FILA_COLUMNAS = 5;
+    private const ULTIMA_COLUMNA = 'M';
 
     private const PRIMERA_FILA_RIESGO = 6;
 
-    /** Ancho de cada columna (A–M), en caracteres. */
-    private const ANCHOS = [22, 26, 16, 28, 26, 12, 10, 16, 24, 28, 22, 18, 30];
+    /** Caracteres que Excel no admite en el nombre de una hoja. */
+    private const NO_VALIDOS_EN_HOJA = ['\\', '/', '?', '*', '[', ']', ':'];
 
     /**
      * @param  array{encabezado: array<string, string>, grupos: array<int, array{titulo: string, columnas: array<int, string>}>, filas: array<int, array<string, mixed>>}  $datos
@@ -39,17 +40,19 @@ class ExcelMatriz
     public function generar(array $datos): string
     {
         $libro = new Spreadsheet;
+        $libro->getDefaultStyle()->getFont()->setName('Calibri')->setSize(11);
         $libro->getProperties()
             ->setTitle("Matriz de riesgos · {$datos['encabezado']['proceso']} · {$datos['encabezado']['edicion']}")
             ->setCreator((string) config('app.name'));
 
         $hoja = $libro->getActiveSheet();
-        $hoja->setTitle('Matriz de riesgos');
+        $hoja->setTitle($this->nombreHoja($datos['encabezado']['edicion']));
 
         $this->encabezado($hoja, $datos['encabezado']);
         $this->columnas($hoja, $datos['grupos']);
         $ultimaFila = $this->riesgos($hoja, $datos['filas']);
         $this->formato($hoja, $ultimaFila);
+        $this->logo($hoja);
 
         ob_start();
         (new Xlsx($libro))->save('php://output');
@@ -62,53 +65,75 @@ class ExcelMatriz
      */
     private function encabezado(Worksheet $hoja, array $encabezado): void
     {
-        $this->texto($hoja, 'A1', $encabezado['titulo']);
-        $this->texto($hoja, 'J1', "{$encabezado['codigo']} {$encabezado['edicion_formulario']}");
-        $this->texto($hoja, 'A2', "DIRECCIÓN: {$encabezado['direccion']}");
-        $this->texto($hoja, 'E2', "PROCESO: {$encabezado['proceso']}");
-        $this->texto($hoja, 'J2', "FECHA DE REVISIÓN: {$encabezado['fecha_revision']}\nEDICIÓN: {$encabezado['edicion']}");
-
-        foreach (['A1:I1', 'J1:M1', 'A2:D2', 'E2:I2', 'J2:M2', 'A3:M3'] as $rango) {
+        foreach (['A1:I1', 'K1:M1', 'A2:B2', 'C2:I2', 'J2:M2'] as $rango) {
             $hoja->mergeCells($rango);
         }
 
-        $hoja->getStyle('A1:M1')->getFont()->setBold(true)->setSize(14);
-        $hoja->getStyle('A1:M1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-        $hoja->getStyle('A2:M2')->getAlignment()->setWrapText(true)->setVertical(Alignment::VERTICAL_CENTER);
-        $hoja->getRowDimension(2)->setRowHeight(30);
+        // Fila 1: título y código del formulario.
+        $this->texto($hoja, 'A1', $encabezado['titulo']);
+        $this->texto($hoja, 'K1', "{$encabezado['codigo']}\n{$encabezado['edicion_formulario']}");
+        $fila1 = $hoja->getStyle('A1:M1');
+        $fila1->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB(FormatoInstitucional::FONDO_TITULO);
+        $fila1->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER);
+        $hoja->getStyle('A1')->getFont()->setSize(36);
+        $hoja->getStyle('K1')->getFont()->setName(FormatoInstitucional::FUENTE_CODIGO)->setSize(16);
+        $hoja->getStyle('K1')->getAlignment()->setWrapText(true);
+        $hoja->getRowDimension(1)->setRowHeight(46.5);
 
+        // La plantilla deja J1 libre: ahí va la marca de borrador.
         if ($encabezado['estado'] === 'borrador') {
-            $this->texto($hoja, 'A3', 'BORRADOR — documento sin publicar');
-            $hoja->getStyle('A3')->getFont()->setBold(true)->getColor()->setRGB('B91C1C');
-            $hoja->getStyle('A3')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            $this->texto($hoja, 'J1', 'BORRADOR');
+            $hoja->getStyle('J1')->getFont()->setBold(true)->setSize(14)->getColor()->setRGB('C00000');
         }
+
+        // Fila 2: Dirección, Proceso y Fecha de revisión.
+        $this->texto($hoja, 'A2', "DIRECCIÓN: {$encabezado['direccion']}");
+        $this->texto($hoja, 'C2', "PROCESO: {$encabezado['proceso']}");
+        $this->texto($hoja, 'J2', "FECHA DE REVISIÓN: {$encabezado['fecha_revision']}");
+        $fila2 = $hoja->getStyle('A2:M2');
+        $fila2->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB(FormatoInstitucional::FONDO_DATOS_ENCABEZADO);
+        $fila2->getFont()->setBold(true)->setSize(10);
+        // Altura fija de la plantilla: el texto largo se reduce en lugar de cortarse.
+        $fila2->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT)->setVertical(Alignment::VERTICAL_CENTER)->setShrinkToFit(true);
+        $hoja->getStyle('C2')->getFont()->setSize(12);
+        $hoja->getRowDimension(2)->setRowHeight(22.5);
     }
 
     /**
+     * Fila 3: grupos con su color. Filas 4-5: una columna por celda combinada.
+     *
      * @param  array<int, array{titulo: string, columnas: array<int, string>}>  $grupos
      */
     private function columnas(Worksheet $hoja, array $grupos): void
     {
         $columna = 1;
 
-        foreach ($grupos as $grupo) {
-            $inicio = $columna;
+        foreach ($grupos as $indice => $grupo) {
+            $inicio = Coordinate::stringFromColumnIndex($columna);
 
             foreach ($grupo['columnas'] as $titulo) {
-                $this->texto($hoja, Coordinate::stringFromColumnIndex($columna).self::FILA_COLUMNAS, $titulo);
+                $letra = Coordinate::stringFromColumnIndex($columna);
+                $this->texto($hoja, "{$letra}4", $titulo);
+                $hoja->mergeCells("{$letra}4:{$letra}5");
                 $columna++;
             }
 
-            $desde = Coordinate::stringFromColumnIndex($inicio).self::FILA_GRUPOS;
-            $this->texto($hoja, $desde, $grupo['titulo']);
-            $hoja->mergeCells($desde.':'.Coordinate::stringFromColumnIndex($columna - 1).self::FILA_GRUPOS);
+            $fin = Coordinate::stringFromColumnIndex($columna - 1);
+            $this->texto($hoja, "{$inicio}3", $grupo['titulo']);
+            $hoja->mergeCells("{$inicio}3:{$fin}3");
+            $hoja->getStyle("{$inicio}3:{$fin}3")->getFill()->setFillType(Fill::FILL_SOLID)
+                ->getStartColor()->setRGB(FormatoInstitucional::FONDOS_GRUPOS[$indice] ?? FormatoInstitucional::FONDO_COLUMNAS);
         }
 
-        $cabecera = $hoja->getStyle('A'.self::FILA_GRUPOS.':M'.self::FILA_COLUMNAS);
+        $hoja->getStyle('A3:M3')->getFont()->setBold(true)->setSize(14);
+        $hoja->getStyle('A3:M3')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER);
+        $hoja->getRowDimension(3)->setRowHeight(18.75);
+
+        $cabecera = $hoja->getStyle('A4:M5');
+        $cabecera->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB(FormatoInstitucional::FONDO_COLUMNAS);
         $cabecera->getFont()->setBold(true);
         $cabecera->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER)->setWrapText(true);
-        $hoja->getStyle('A'.self::FILA_GRUPOS.':M'.self::FILA_GRUPOS)->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('E5E7EB');
-        $hoja->getStyle('A'.self::FILA_COLUMNAS.':M'.self::FILA_COLUMNAS)->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('F3F4F6');
+        $hoja->getRowDimension(5)->setRowHeight(15.75);
     }
 
     /**
@@ -117,15 +142,15 @@ class ExcelMatriz
      */
     private function riesgos(Worksheet $hoja, array $filas): int
     {
+        $fila = self::PRIMERA_FILA_RIESGO;
+
         if ($filas === []) {
-            $fila = self::PRIMERA_FILA_RIESGO;
             $this->texto($hoja, "A{$fila}", 'Esta edición no tiene riesgos registrados.');
             $hoja->mergeCells("A{$fila}:M{$fila}");
+            $hoja->getStyle("A{$fila}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
             return $fila;
         }
-
-        $fila = self::PRIMERA_FILA_RIESGO;
 
         foreach ($filas as $riesgo) {
             $this->texto($hoja, "A{$fila}", $riesgo['actividad']);
@@ -144,7 +169,17 @@ class ExcelMatriz
             $fila++;
         }
 
-        return $fila - 1;
+        $ultima = $fila - 1;
+        $primera = self::PRIMERA_FILA_RIESGO;
+
+        // Alineación de la plantilla: texto a la izquierda, P e I y nivel centrados.
+        $hoja->getStyle("A{$primera}:M{$ultima}")->getAlignment()
+            ->setHorizontal(Alignment::HORIZONTAL_LEFT)->setVertical(Alignment::VERTICAL_CENTER)->setWrapText(true);
+        $hoja->getStyle("F{$primera}:H{$ultima}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $hoja->getStyle("M{$primera}:M{$ultima}")->getFont()->setBold(true)->setSize(12)
+            ->getColor()->setRGB(FormatoInstitucional::COLOR_SEGUIMIENTO);
+
+        return $ultima;
     }
 
     /**
@@ -152,10 +187,11 @@ class ExcelMatriz
      */
     private function nivel(Worksheet $hoja, string $celda, array $riesgo): void
     {
-        /** @var array{nombre: string, color: string}|null $nivel */
+        /** @var array{nombre: string, slug: string, color: string}|null $nivel */
         $nivel = $riesgo['nivel'];
+        $colores = FormatoInstitucional::colorNivel($nivel);
 
-        if ($nivel === null) {
+        if ($nivel === null || $colores === null) {
             $this->texto($hoja, $celda, 'Sin evaluar');
 
             return;
@@ -167,34 +203,57 @@ class ExcelMatriz
             $texto .= "\nAjustado: ".$riesgo['justificacion_ajuste'];
         }
 
-        // El color acompaña al nombre del nivel, como en el mapa de calor.
         $this->texto($hoja, $celda, $texto);
-        $hoja->getStyle($celda)->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB(strtoupper(ltrim($nivel['color'], '#')));
-        $hoja->getStyle($celda)->getFont()->setBold(true);
+        $estilo = $hoja->getStyle($celda);
+        $estilo->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB($colores['fondo']);
+        $estilo->getFont()->setBold(true)->getColor()->setRGB($colores['texto']);
     }
 
     private function formato(Worksheet $hoja, int $ultimaFila): void
     {
-        foreach (self::ANCHOS as $indice => $ancho) {
+        foreach (FormatoInstitucional::ANCHOS as $indice => $ancho) {
             $hoja->getColumnDimension(Coordinate::stringFromColumnIndex($indice + 1))->setWidth($ancho);
         }
 
-        $tabla = $hoja->getStyle('A'.self::FILA_GRUPOS.":M{$ultimaFila}");
-        $tabla->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN)->getColor()->setRGB('6B7280');
+        $hoja->getStyle('A1:'.self::ULTIMA_COLUMNA.$ultimaFila)->getBorders()->getAllBorders()
+            ->setBorderStyle(Border::BORDER_THIN)->getColor()->setRGB('000000');
 
-        $cuerpo = $hoja->getStyle('A'.self::PRIMERA_FILA_RIESGO.":M{$ultimaFila}");
-        $cuerpo->getAlignment()->setWrapText(true)->setVertical(Alignment::VERTICAL_TOP);
-        $hoja->getStyle('F'.self::PRIMERA_FILA_RIESGO.":G{$ultimaFila}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-
-        // Encabezados fijos al desplazarse y repetidos en cada página impresa.
+        // Encabezado fijo al desplazarse y repetido en cada página impresa.
         $hoja->freezePane('A'.self::PRIMERA_FILA_RIESGO);
+        $hoja->getSheetView()->setZoomScale(60);
         $hoja->getPageSetup()
             ->setOrientation(PageSetup::ORIENTATION_LANDSCAPE)
             ->setPaperSize(PageSetup::PAPERSIZE_LETTER)
             ->setFitToWidth(1)
             ->setFitToHeight(0)
-            ->setRowsToRepeatAtTopByStartAndEnd(self::FILA_GRUPOS, self::FILA_COLUMNAS);
+            ->setRowsToRepeatAtTopByStartAndEnd(1, 5)
+            ->setPrintArea('A1:'.self::ULTIMA_COLUMNA.$ultimaFila);
         $hoja->getHeaderFooter()->setOddFooter('&RPágina &P de &N');
+    }
+
+    /** Logo de la institución en la esquina superior izquierda, dentro de la fila del título. */
+    private function logo(Worksheet $hoja): void
+    {
+        $logo = new Drawing;
+        // setPath() primero: es de Drawing; los demás métodos son de la clase base.
+        $logo->setPath(FormatoInstitucional::rutaLogo());
+        $logo->setName('Logo INFOTEP')
+            ->setDescription('INFOTEP')
+            ->setCoordinates('A1')
+            ->setOffsetX(10)
+            ->setOffsetY(4)
+            ->setHeight(54)
+            ->setWorksheet($hoja);
+    }
+
+    /** "Ene/Mar 2026" → "Ene-Mar 2026"; máximo 31 caracteres, como exige Excel. */
+    private function nombreHoja(string $edicion): string
+    {
+        $nombre = str_replace('/', '-', $edicion);
+        $nombre = Str::squish(str_replace(self::NO_VALIDOS_EN_HOJA, ' ', $nombre));
+        $nombre = trim(mb_substr($nombre, 0, 31), " '");
+
+        return $nombre === '' ? 'Matriz de riesgos' : $nombre;
     }
 
     /**
