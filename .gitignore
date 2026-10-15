@@ -42,3 +42,7 @@ yarn-error.log
 
 # Cookies de pruebas manuales con curl (contienen sesiones)
 cookies.txt
+
+# Despliegue con Docker: secretos y certificados locales
+/docker/produccion.env
+/docker/nginx/certs/

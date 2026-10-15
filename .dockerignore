@@ -1,0 +1,28 @@
+# Nada de configuración local, datos ni secretos en la imagen.
+.env
+.env.*
+docker/produccion.env
+docker/nginx/certs
+cookies.txt
+database/*.sqlite*
+
+# Generados en local (incluyen paquetes de desarrollo): se regeneran al construir.
+vendor
+node_modules
+bootstrap/cache/*.php
+storage/app/*
+storage/framework/cache/*
+storage/framework/sessions/*
+storage/framework/views/*
+storage/logs/*
+.phpunit.cache
+.phpunit.result.cache
+
+# Desarrollo
+.git
+.github
+.idea
+.vscode
+.claude
+tests
+docs

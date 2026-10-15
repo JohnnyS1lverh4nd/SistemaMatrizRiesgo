@@ -1,0 +1,78 @@
+# SistemaMatrizRiesgo en producción (ver docs/despliegue.md).
+#
+#   docker compose build
+#   docker compose up -d
+#
+# Requiere el repositorio del frontend al lado de este:
+#   SistemaMatrizRiesgo/            (este repo: API Laravel)
+#   SistemaMatrizRiesgo-frontend/   (Nuxt)
+#
+# La configuración y los secretos están en docker/produccion.env (no se versiona).
+
+name: matriz-riesgo
+
+services:
+  # Servidor web: SPA de Nuxt (estática) + proxy FastCGI a Laravel. Único servicio expuesto.
+  web:
+    build:
+      context: ../SistemaMatrizRiesgo-frontend
+    image: matriz-riesgo/web
+    ports:
+      - "${HTTP_PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:443"
+    volumes:
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro,z
+      - ./docker/nginx/certs:/etc/nginx/certs:ro,z
+    depends_on:
+      app:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # API Laravel (PHP-FPM).
+  app:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    image: matriz-riesgo/api
+    env_file: docker/produccion.env
+    volumes:
+      # Evidencias, logs y sesiones: sobreviven a las actualizaciones de la imagen.
+      - storage:/var/www/html/storage
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "php -r 'exit(@fsockopen(\"127.0.0.1\", 9000) ? 0 : 1);'"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    restart: unless-stopped
+
+  # Cola de trabajos (QUEUE_CONNECTION=database). Misma imagen que "app".
+  worker:
+    image: matriz-riesgo/api
+    env_file: docker/produccion.env
+    command: ["php", "artisan", "queue:work", "--tries=3", "--max-time=3600"]
+    volumes:
+      - storage:/var/www/html/storage
+    depends_on:
+      app:
+        condition: service_healthy
+    restart: unless-stopped
+
+  db:
+    image: mariadb:11.4
+    env_file: docker/produccion.env
+    volumes:
+      - db:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    # Sin "ports": la base de datos solo es accesible desde la red interna de compose.
+
+volumes:
+  storage:
+  db:

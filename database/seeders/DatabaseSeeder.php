@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
@@ -11,7 +10,9 @@ class DatabaseSeeder extends Seeder
     use WithoutModelEvents;
 
     /**
-     * Seed the application's database.
+     * Solo catálogos: es seguro ejecutarlo en producción (firstOrCreate) y no
+     * crea usuarios. El primer Administrador se crea con
+     * php artisan usuarios:crear-administrador.
      */
     public function run(): void
     {
@@ -22,11 +23,6 @@ class DatabaseSeeder extends Seeder
             NivelRiesgoSeeder::class,
             EscalaNivelSeeder::class,
             MatrizCalorCeldaSeeder::class,
-        ]);
-
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
         ]);
     }
 }
