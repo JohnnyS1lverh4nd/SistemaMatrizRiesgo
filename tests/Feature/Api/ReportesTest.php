@@ -278,3 +278,20 @@ test('comparison respects the departamento scope', function () {
         ->getJson("/api/matrices/{$this->vigenteAdmision->id}/comparar/{$otra->id}")
         ->assertForbidden();
 });
+
+// --- Procesos y departamentos retirados ------------------------------------------
+
+test('risks of an inactive process or department are left out of the consolidated reports', function () {
+    $this->actingAs($this->direccion)->getJson('/api/dashboard')->assertJsonPath('data.total_riesgos', 4);
+
+    // Proceso retirado: sus ediciones siguen existiendo, pero no cuentan.
+    $this->abastecimiento->update(['activo' => false]);
+    $this->actingAs($this->direccion)->getJson('/api/dashboard')->assertJsonPath('data.total_riesgos', 1);
+    $this->actingAs($this->direccion)->getJson('/api/reportes/riesgos')->assertJsonCount(1, 'data');
+    $this->actingAs($this->direccion)->getJson("/api/matrices/{$this->vigenteCompras->id}")->assertOk();
+
+    // Departamento retirado: tampoco cuentan sus procesos activos.
+    $this->abastecimiento->update(['activo' => true]);
+    $this->admision->update(['activo' => false]);
+    $this->actingAs($this->direccion)->getJson('/api/dashboard')->assertJsonPath('data.total_riesgos', 3);
+});

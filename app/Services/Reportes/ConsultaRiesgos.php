@@ -47,8 +47,11 @@ class ConsultaRiesgos
                     ->when($filtros['desde'] ?? null, fn ($q, $v) => $q->whereDate('fecha_revision', '>=', $v))
                     ->when($filtros['hasta'] ?? null, fn ($q, $v) => $q->whereDate('fecha_revision', '<=', $v))
                     ->when($filtros['proceso_id'] ?? null, fn ($q, $v) => $q->where('proceso_id', $v))
+                    // Procesos y departamentos retirados (activo = false) no cuentan;
+                    // sus ediciones siguen consultables por su URL.
                     ->whereHas('proceso', fn (Builder $proceso) => $proceso
-                        ->whereIn('departamento_id', Departamento::visiblesPara($user)->select('departamentos.id'))
+                        ->where('activo', true)
+                        ->whereIn('departamento_id', Departamento::visiblesPara($user)->where('departamentos.activo', true)->select('departamentos.id'))
                         ->when($filtros['departamento_id'] ?? null, fn ($q, $v) => $q->where('departamento_id', $v)));
             })
             ->when($filtros['factor_id'] ?? null, fn ($q, $v) => $q->whereHas('factores', fn ($f) => $f->whereKey($v)))

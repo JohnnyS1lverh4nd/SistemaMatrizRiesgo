@@ -161,3 +161,26 @@ test('password cannot be reset with invalid token', function () {
 
     $response->assertUnprocessable()->assertJsonValidationErrors('email');
 });
+
+test('the reset email is written in Spanish and links to the Nuxt page', function () {
+    Notification::fake();
+    $user = User::factory()->create(['email' => 'ana@infotep.test']);
+
+    $this->postJson(route('password.email'), ['email' => $user->email])->assertOk();
+
+    Notification::assertSentTo($user, ResetPassword::class, function (ResetPassword $notificacion) use ($user) {
+        $correo = $notificacion->toMail($user);
+        $html = (string) $correo->render();
+
+        expect($correo->subject)->toBe('Restablecer contraseña')
+            ->and($correo->actionText)->toBe('Restablecer contraseña')
+            ->and($correo->actionUrl)->toStartWith(config('app.frontend_url').'/restablecer-contrasena?token=')
+            ->and(implode(' ', $correo->introLines))->toContain('Recibe este correo porque se solicitó restablecer la contraseña de su cuenta.')
+            ->and(implode(' ', $correo->outroLines))->toContain('Este enlace caduca en 60 minutos.')
+            ->and($html)->toContain('Saludos,')
+            ->and($html)->not->toContain('Reset Password')
+            ->and($html)->not->toContain('Regards');
+
+        return true;
+    });
+});
