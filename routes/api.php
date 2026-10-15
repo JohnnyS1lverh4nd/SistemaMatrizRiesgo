@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\CurrentUserController;
 use App\Http\Controllers\Api\DepartamentoController;
 use App\Http\Controllers\Api\EscalaNivelController;
 use App\Http\Controllers\Api\EvidenciaController;
+use App\Http\Controllers\Api\ExportacionController;
 use App\Http\Controllers\Api\FactorRiesgoController;
 use App\Http\Controllers\Api\MatrizCalorCeldaController;
 use App\Http\Controllers\Api\MatrizController;
@@ -55,6 +56,7 @@ Route::middleware(['auth:sanctum', EnsureUserIsActive::class])->group(function (
     Route::get('/dashboard', [ReporteController::class, 'dashboard']);
     Route::get('/reportes/riesgos', [ReporteController::class, 'riesgos']);
     Route::get('/matrices/{matriz}/comparar/{otra}', [ReporteController::class, 'comparar']);
+    Route::get('/matrices/{matriz}/exportar/pdf', [ExportacionController::class, 'pdf']);
 
     // Auditoría: solo lectura (los registros los crea el sistema).
     Route::get('/auditoria', [AuditoriaController::class, 'index']);

@@ -50,6 +50,27 @@ El vínculo es `riesgo_origen_id` (se fija al crear una edición a partir de
 otra). Se sigue la cadena completa, así que también se pueden comparar
 ediciones no consecutivas (Enero-Marzo con Octubre-Diciembre).
 
+## Exportación con formato institucional
+
+`App\Services\Exportacion\DatosMatriz` arma el contenido de una edición igual
+que los Excel originales: encabezado (MATRIZ DE RIESGOS, código
+RT-01-NI-ONA-156 + edición del formulario, Dirección, Proceso, fecha de
+revisión, edición), los tres grupos de columnas (Identificación, Análisis,
+Seguimiento y Control) y una fila por riesgo. PDF y Excel dibujan exactamente
+esos datos.
+
+- **PDF** (`GET /api/matrices/{id}/exportar/pdf`): DomPDF, carta horizontal,
+  encabezado de columnas repetido en cada página y "Página X de Y". Los
+  borradores llevan la marca "BORRADOR". Configuración restrictiva: sin
+  recursos remotos ni PHP incrustado; todo el texto se escapa.
+- **Excel**: pendiente. PhpSpreadsheet requiere las extensiones PHP `gd` e
+  `intl` (`sudo dnf install php-gd php-intl`; también en el servidor de
+  producción).
+- La columna Seguimiento/Evidencias lista los seguimientos válidos (nunca los
+  anulados) con su fecha.
+- Cada exportación queda en la auditoría (`evento = exportado`).
+- Quien puede ver la edición puede exportarla.
+
 ## API
 
 | Método y ruta | Contenido |
@@ -57,3 +78,4 @@ ediciones no consecutivas (Enero-Marzo con Octubre-Diciembre).
 | `GET /api/dashboard` (`departamento_id?`) | Totales por nivel, mapa de calor 4×4, estados del tratamiento, prioritarios pendientes, atrasados y consolidado por departamento |
 | `GET /api/reportes/riesgos` (filtros) | Riesgos con su contexto y estado de seguimiento; más graves primero; 50 por página |
 | `GET /api/matrices/{id}/comparar/{otra}` | Comparación de dos ediciones |
+| `GET /api/matrices/{id}/exportar/pdf` | PDF con formato institucional |
