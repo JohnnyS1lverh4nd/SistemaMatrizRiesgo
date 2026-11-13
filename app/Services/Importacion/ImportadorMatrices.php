@@ -151,7 +151,7 @@ class ImportadorMatrices
                     }
                 }
 
-                Auditor::registrar('importado', 'matriz', $matriz->id, descripcion: "{$plan->archivo}, hoja \"{$edicion['hoja']}\"", usuario: $usuario);
+                Auditor::registrar('importado', 'matriz', $matriz->id, descripcion: "{$plan->archivo}, hoja \"{$edicion['hoja']}\"", usuario: $usuario, contexto: $matriz->contextoAuditoria());
 
                 $creadas->push($matriz);
                 $anteriores = $actuales;

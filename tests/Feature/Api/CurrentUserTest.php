@@ -35,6 +35,8 @@ test('authenticated user is returned with role and assigned departamentos', func
                 'name' => $user->name,
                 'email' => $user->email,
                 'activo' => true,
+                'created_at' => $user->created_at->toIso8601String(),
+                'tour' => ['estado' => null, 'actualizado_at' => null],
                 'role' => [
                     'id' => $user->role_id,
                     'nombre' => 'Encargado de Departamento/Proceso',

@@ -22,6 +22,14 @@ class UserResource extends JsonResource
             'name' => $this->name,
             'email' => $this->email,
             'activo' => $this->activo,
+            // Fecha de alta de la cuenta (se muestra en Mi perfil).
+            'created_at' => $this->created_at?->toIso8601String(),
+            // Solo para el propio usuario (GET /api/user, Mi perfil): el estado del
+            // recorrido guiado de otros no le interesa al Administrador.
+            'tour' => $this->when($request->user()?->id === $this->id, fn () => [
+                'estado' => $this->tour_estado?->value,
+                'actualizado_at' => $this->tour_actualizado_at?->toIso8601String(),
+            ]),
             'role' => $this->whenLoaded('role', fn () => $this->role ? [
                 'id' => $this->role->id,
                 'nombre' => $this->role->nombre,

@@ -14,6 +14,8 @@ use Illuminate\Support\Str;
  *  - camposSensibles(): se registra que cambiaron, nunca su valor.
  *  - camposExcluidosDeAuditoria(): no se registran en absoluto.
  *  - eventoAuditoria(): nombre de negocio (publicado, anulado...).
+ *  - contextoAuditoria(): área afectada (departamento, proceso, edición)
+ *    para el historial de movimientos por departamento.
  */
 trait Auditable
 {
@@ -59,6 +61,17 @@ trait Auditable
     }
 
     /**
+     * Área a la que pertenece el registro. Por defecto ninguna (catálogos,
+     * usuarios): no aparece en el historial de movimientos.
+     *
+     * @return array{departamento_id?: int|null, proceso_id?: int|null, matriz_id?: int|null}
+     */
+    public function contextoAuditoria(): array
+    {
+        return [];
+    }
+
+    /**
      * @param  array<string, mixed>  $cambios
      */
     protected function eventoAuditoria(string $evento, array $cambios): string
@@ -90,6 +103,6 @@ trait Auditable
      */
     private function auditar(string $evento, ?array $antes, ?array $despues): void
     {
-        Auditor::registrar($evento, $this->nombreEntidadAuditoria(), (int) $this->getKey(), $antes, $despues);
+        Auditor::registrar($evento, $this->nombreEntidadAuditoria(), (int) $this->getKey(), $antes, $despues, contexto: $this->contextoAuditoria());
     }
 }

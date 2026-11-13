@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureUserIsActive;
 use Laravel\Fortify\Features;
 
 return [
@@ -101,7 +102,10 @@ return [
     |
     */
 
-    'middleware' => ['web'],
+    // EnsureUserIsActive: una cuenta desactivada con la sesión abierta no
+    // puede seguir usando estas rutas (p. ej. cambiar su contraseña). Con un
+    // invitado no hace nada, así que el login y la recuperación no cambian.
+    'middleware' => ['web', EnsureUserIsActive::class],
 
     /*
     |--------------------------------------------------------------------------

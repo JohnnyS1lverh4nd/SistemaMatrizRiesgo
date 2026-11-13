@@ -116,6 +116,17 @@ class Riesgo extends Model
         return $estado instanceof EstadoMatriz ? $estado : EstadoMatriz::from((string) $estado);
     }
 
+    /**
+     * Área afectada, para el historial de movimientos (ver Auditable). La edición
+     * puede estar descartada (eliminación lógica): también se busca ahí.
+     *
+     * @return array{departamento_id?: int|null, proceso_id?: int|null, matriz_id?: int|null}
+     */
+    public function contextoAuditoria(): array
+    {
+        return ($this->matriz ?? Matriz::withTrashed()->find($this->matriz_id))?->contextoAuditoria() ?? [];
+    }
+
     /** @return BelongsTo<Matriz, $this> */
     public function matriz(): BelongsTo
     {

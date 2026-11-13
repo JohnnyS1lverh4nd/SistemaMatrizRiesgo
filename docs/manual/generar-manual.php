@@ -57,11 +57,15 @@ if ($codigo === 0) {
     $total = (int) shell_exec('pdfinfo '.escapeshellarg($temporal).' | sed -n "s/^Pages: *//p"');
     for ($pagina = 3; $pagina <= $total; $pagina++) {
         $texto = (string) shell_exec("pdftotext -f {$pagina} -l {$pagina} ".escapeshellarg($temporal).' -');
-        foreach (preg_split('/\R/', $texto) ?: [] as $linea) {
-            if (preg_match('/^([1-9])\. [A-ZÁÉÍÓÚ]/u', trim($linea), $m) && ! isset($paginas[(int) $m[1]])) {
-                $paginas[(int) $m[1]] = (string) $pagina;
-                break;
-            }
+        // Cada sección empieza en página nueva: solo cuenta la primera línea
+        // de contenido (tras el encabezado). Así una lista numerada que
+        // continúa en otra página ("3. Abra el correo…") no se toma por sección.
+        $lineas = array_values(array_filter(
+            array_map('trim', preg_split('/\R/', $texto) ?: []),
+            fn (string $linea) => $linea !== '' && ! str_starts_with($linea, 'Sistema de Gestión de Matrices de Riesgo ·'),
+        ));
+        if (preg_match('/^([1-9])\. [A-ZÁÉÍÓÚ]/u', $lineas[0] ?? '', $m) && ! isset($paginas[(int) $m[1]])) {
+            $paginas[(int) $m[1]] = (string) $pagina;
         }
     }
     $pdf = renderizar($fuente, $paginas);

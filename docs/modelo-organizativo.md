@@ -31,8 +31,17 @@ Departamento (unidad responsable; usuarios asignados)
 | `POST /api/departamentos`, `PUT /api/departamentos/{id}` | Administrador                      |
 | `GET /api/departamentos/{id}/procesos` (`?activo`) | Quien pueda ver el departamento          |
 | `GET /api/procesos/{id}`                         | Quien pueda ver su departamento            |
-| `POST /api/departamentos/{id}/procesos`, `PUT /api/procesos/{id}` | Administrador             |
+| `POST /api/departamentos/{id}/procesos`          | Administrador; Encargado de Departamento en sus departamentos |
+| `PUT /api/procesos/{id}`                         | Administrador; Encargado de Departamento solo en los procesos que él creó (y mientras siga asignado al departamento) |
 
+- **Crear un proceso = crear una matriz nueva** del departamento (RF-2). No
+  confundir con crear una **edición** (`POST /api/procesos/{id}/matrices`).
+- Al crear se puede enviar `edicion_inicial` `{nombre, fecha_revision}`: la
+  primera edición se crea en borrador **en la misma transacción** (o se crean
+  los dos, o ninguno).
+- `procesos.creado_por_id` guarda quién lo creó; lo fija el servidor con el
+  usuario de la sesión y no se puede enviar ni modificar por API. Los procesos
+  anteriores a nov. 2026 lo tienen vacío: solo los edita el Administrador.
 - No hay `DELETE`: se retira con `{ "activo": false }`.
 - `slug` es opcional al crear (se genera del nombre); en edición solo cambia si
   se envía. En procesos es único **dentro** del departamento.

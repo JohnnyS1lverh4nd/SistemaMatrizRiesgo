@@ -109,6 +109,20 @@ class Matriz extends Model
         };
     }
 
+    /**
+     * Área afectada, para el historial de movimientos (ver Auditable).
+     *
+     * @return array{departamento_id?: int|null, proceso_id?: int|null, matriz_id?: int|null}
+     */
+    public function contextoAuditoria(): array
+    {
+        return [
+            'departamento_id' => $this->proceso->departamento_id,
+            'proceso_id' => $this->proceso_id,
+            'matriz_id' => $this->id,
+        ];
+    }
+
     /** @return BelongsTo<Proceso, $this> */
     public function proceso(): BelongsTo
     {

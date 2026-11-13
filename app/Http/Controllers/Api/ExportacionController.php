@@ -27,7 +27,7 @@ class ExportacionController extends Controller
         $this->authorize('view', $matriz);
 
         $contenido = $pdf->generar($this->datos->de($matriz));
-        Auditor::registrar('exportado', 'matriz', $matriz->id, descripcion: 'PDF');
+        Auditor::registrar('exportado', 'matriz', $matriz->id, descripcion: 'PDF', contexto: $matriz->contextoAuditoria());
 
         return response($contenido, 200, [
             'Content-Type' => 'application/pdf',
@@ -41,7 +41,7 @@ class ExportacionController extends Controller
         $this->authorize('view', $matriz);
 
         $contenido = $excel->generar($this->datos->de($matriz));
-        Auditor::registrar('exportado', 'matriz', $matriz->id, descripcion: 'Excel');
+        Auditor::registrar('exportado', 'matriz', $matriz->id, descripcion: 'Excel', contexto: $matriz->contextoAuditoria());
 
         return response($contenido, 200, [
             'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',

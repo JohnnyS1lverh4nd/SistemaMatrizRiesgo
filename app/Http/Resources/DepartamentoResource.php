@@ -3,6 +3,7 @@
 namespace App\Http\Resources;
 
 use App\Models\Departamento;
+use App\Models\Proceso;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -18,6 +19,10 @@ class DepartamentoResource extends JsonResource
             'slug' => $this->slug,
             'direccion' => $this->direccion,
             'activo' => $this->activo,
+            // Para que el frontend muestre "Nueva matriz"; la API vuelve a comprobarlo.
+            'permisos' => [
+                'crear_proceso' => $request->user()?->can('create', [Proceso::class, $this->resource]) ?? false,
+            ],
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

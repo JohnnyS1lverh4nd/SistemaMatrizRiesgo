@@ -152,7 +152,7 @@
                 "user"
               ]
             },
-            "description": "Datos del usuario con sesión, su rol, departamentos y `meta.sesion_minutos` (inactividad permitida).\n\n**Quién puede:** Cualquier usuario autenticado."
+            "description": "Datos del usuario con sesión (también los de Mi perfil): rol, departamentos, fecha de alta y `meta.sesion_minutos` (inactividad permitida).\n\n**Quién puede:** Cualquier usuario autenticado."
           },
           "event": [
             {
@@ -161,7 +161,8 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
-                  "pm.test('Sesión iniciada', () => pm.expect(pm.response.json().data.email).to.eql(pm.collectionVariables.get('email')));"
+                  "pm.test('Sesión iniciada', () => pm.expect(pm.response.json().data.email).to.eql(pm.collectionVariables.get('email')));",
+                  "if (pm.response.code < 300) { pm.collectionVariables.set('nombre_usuario', pm.response.json().data.name); }"
                 ]
               }
             }
@@ -541,7 +542,7 @@
           ]
         },
         {
-          "name": "Crear proceso",
+          "name": "Crear proceso (nueva matriz)",
           "request": {
             "method": "POST",
             "header": [
@@ -562,7 +563,7 @@
                 "procesos"
               ]
             },
-            "description": "Proceso nuevo en un departamento activo.\n\n**Quién puede:** Administrador.",
+            "description": "Proceso nuevo (= matriz nueva) en un departamento activo. Opcional: `edicion_inicial` {nombre, fecha_revision} crea su primera edición en borrador en la misma transacción.\n\n**Quién puede:** Administrador y Encargado de Departamento (sus departamentos).",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"nombre\": \"Proceso Postman\",\n  \"descripcion\": \"Proceso de ejemplo\"\n}",
@@ -648,7 +649,7 @@
                 "{{proceso_id}}"
               ]
             },
-            "description": "Un proceso; `permisos` indica qué puede hacer el usuario (crear ediciones, importar).\n\n**Quién puede:** Todos los roles (según su alcance)."
+            "description": "Un proceso; `permisos` indica qué puede hacer el usuario (editar el proceso, crear ediciones, importar).\n\n**Quién puede:** Todos los roles (según su alcance)."
           },
           "event": [
             {
@@ -683,7 +684,7 @@
                 "{{proceso_id}}"
               ]
             },
-            "description": "Sin borrado: se desactiva con `activo: false` (deja de contar en los reportes).\n\n**Quién puede:** Administrador.",
+            "description": "Sin borrado: se desactiva con `activo: false` (deja de contar en los reportes).\n\n**Quién puede:** Administrador; Encargado de Departamento en los procesos que creó.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"descripcion\": \"Proceso de ejemplo (modificado)\"\n}",
@@ -2450,12 +2451,189 @@
               }
             }
           ]
+        },
+        {
+          "name": "Historial de movimientos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/movimientos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "movimientos"
+              ]
+            },
+            "description": "Movimientos sobre las matrices de los departamentos del usuario, de todos los usuarios. Filtros: `desde`, `hasta`, `usuario_id`, `departamento_id`, `proceso_id`, `matriz_id`, `evento`, `entidad`, `per_page` (10–100). Sin IP ni navegador; sin valores (ver el detalle).\n\n**Quién puede:** Administrador (todos) y Encargados (sus departamentos)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "if (pm.response.code < 300) { pm.collectionVariables.set('movimiento_id', pm.response.json().data[0].id); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Opciones del historial",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/movimientos/opciones",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "movimientos",
+                "opciones"
+              ]
+            },
+            "description": "Usuarios, departamentos, procesos, ediciones, operaciones y tipos de registro con movimientos dentro del alcance (para los filtros).\n\n**Quién puede:** Administrador (todos) y Encargados (sus departamentos)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Detalle de un movimiento",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/movimientos/{{movimiento_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "movimientos",
+                "{{movimiento_id}}"
+              ]
+            },
+            "description": "Un movimiento con sus valores anteriores y nuevos. 403 si es de otro departamento; 404 si no pertenece a un área (catálogos, usuarios, sesiones).\n\n**Quién puede:** Administrador (todos) y Encargados (sus departamentos)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
         }
       ]
     },
     {
-      "name": "9. Mi contraseña",
+      "name": "9. Mi perfil",
       "item": [
+        {
+          "name": "Cambiar mi nombre",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/perfil",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "perfil"
+              ]
+            },
+            "description": "Solo el nombre propio. Correo, rol, departamentos, estado y contraseña se rechazan (422): los gestiona el Administrador o Seguridad de la cuenta. El ejemplo envía el mismo nombre: no cambia nada.\n\n**Quién puede:** Cualquier usuario autenticado.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"{{nombre_usuario}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Estado del recorrido guiado",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/perfil/tour",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "perfil",
+                "tour"
+              ]
+            },
+            "description": "Guarda cómo terminó el recorrido guiado: `completado` u `omitido` (null = nunca lo hizo; se le invita al entrar). Se guarda en el servidor: vale en cualquier navegador o equipo. No se audita (preferencia personal). Cambia el estado del usuario de la colección.\n\n**Quién puede:** Cualquier usuario autenticado.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estado\": \"completado\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
         {
           "name": "Cambiar mi contraseña",
           "request": {

@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Informe técnico · Sistema de Gestión de Matrices de Riesgo</title>
+<!--
+    Fuente del informe técnico. El PDF se genera con:
+        php docs/technical/generar-informe.php
+    {{LOGO}}, {{FECHA}} y {{PAG_N}} los sustituye el generador.
+-->
+<style>
+    @page { margin: 70px 60px 60px 60px; }
+    body { font-family: "DejaVu Sans", sans-serif; font-size: 9.3pt; line-height: 1.42; color: #1f2430; }
+    h1 { color: #121462; font-size: 17pt; margin: 0 0 6px 0; padding-bottom: 6px; border-bottom: 3px solid #ecb53b; page-break-before: always; }
+    h2 { color: #121462; font-size: 12pt; margin: 15px 0 5px 0; page-break-after: avoid; }
+    h3 { color: #344393; font-size: 10.3pt; margin: 12px 0 4px 0; page-break-after: avoid; }
+    p { margin: 0 0 7px 0; text-align: justify; }
+    ul, ol { margin: 0 0 8px 0; padding-left: 18px; }
+    li { margin-bottom: 2px; }
+    code, .mono { font-family: "DejaVu Sans Mono", monospace; font-size: 8pt; color: #2b2f6e; }
+    table { width: 100%; border-collapse: collapse; margin: 6px 0 10px 0; }
+    tr { page-break-inside: avoid; }
+    th { background: #121462; color: #ffffff; font-size: 8.3pt; padding: 5px; text-align: left; }
+    td { border: 0.6px solid #c9cdd8; padding: 4px 5px; font-size: 8.3pt; vertical-align: top; }
+    tr:nth-child(even) td { background: #f5f6fa; }
+    .si { text-align: center; color: #307007; font-weight: bold; }
+    .no { text-align: center; color: #9aa0ad; }
+    .nota { background: #fff7e0; border-left: 4px solid #ecb53b; padding: 6px 9px; margin: 8px 0; font-size: 8.7pt; }
+    .importante { background: #fdecec; border-left: 4px solid #c00000; padding: 6px 9px; margin: 8px 0; font-size: 8.7pt; }
+    .clave { background: #eef0fa; border-left: 4px solid #121462; padding: 6px 9px; margin: 8px 0; font-size: 8.7pt; }
+    .estado-ok { color: #307007; font-weight: bold; }
+    .estado-pend { color: #a15c00; font-weight: bold; }
+    .junto { page-break-inside: avoid; }
+    .pie-tabla { font-size: 7.8pt; color: #5b6070; margin-top: -6px; margin-bottom: 10px; }
+
+    /* Portada */
+    .portada { text-align: center; padding-top: 100px; }
+    .portada img { height: 140px; }
+    .portada .titulo { color: #121462; font-size: 25pt; font-weight: bold; margin-top: 45px; line-height: 1.2; }
+    .portada .subtitulo { font-size: 14pt; color: #344393; margin-top: 12px; }
+    .portada .linea { width: 120px; height: 4px; background: #ecb53b; margin: 26px auto; }
+    .portada .datos { font-size: 9.5pt; color: #4b5060; margin-top: 120px; line-height: 1.8; }
+
+    /* Índice */
+    .indice h1 { page-break-before: always; }
+    .toc td { border: none; border-bottom: 0.6px dotted #c9cdd8; background: none !important; font-size: 10pt; padding: 5px 4px; }
+    .toc .num { width: 7%; color: #121462; font-weight: bold; }
+    .toc .pag { width: 10%; text-align: right; color: #121462; font-weight: bold; }
+
+    /* Cifras */
+    .cifras td { text-align: center; border: none; background: #f5f6fa !important; padding: 8px 4px; width: 16.6%; }
+    .cifras .n { display: block; font-size: 17pt; font-weight: bold; color: #121462; }
+    .cifras .t { display: block; font-size: 7.5pt; color: #4b5060; }
+    .cifras { border-collapse: separate; border-spacing: 4px; }
+
+    /* Diagramas hechos con tablas (DomPDF no dibuja SVG complejos con fiabilidad) */
+    .diag { border-collapse: separate; border-spacing: 6px 3px; margin: 8px 0 12px 0; }
+    .diag td { border: none; background: none !important; text-align: center; padding: 0; }
+    .diag .caja { border: 1.2px solid #121462; background: #eef0fa !important; padding: 6px 5px; font-size: 8.2pt; border-radius: 4px; }
+    .diag .caja b { color: #121462; }
+    .diag .caja.oro { border-color: #b8860b; background: #fff7e0 !important; }
+    .diag .caja.gris { border-color: #8a90a0; background: #f2f3f6 !important; }
+    .diag .flecha { color: #b8860b; font-size: 11pt; font-weight: bold; padding: 1px 0; }
+    .diag .etq { font-size: 7.5pt; color: #5b6070; }
+    .cadena td.caja { width: 14%; }
+    .cadena td.flecha { width: 2.5%; }
+
+    /* Matriz de calor */
+    .calor td { text-align: center; font-weight: bold; width: 18%; }
+    .calor .eje { background: #f2f2f2 !important; color: #1f2430; }
+    .bajo { background: #A9D18E !important; }
+    .moderado { background: #FFD966 !important; }
+    .alto { background: #F4B184 !important; }
+    .critico { background: #C00000 !important; color: #ffffff; }
+</style>
+</head>
+<body>
+
+<!-- ======================= PORTADA ======================= -->
+<div class="portada">
+    <img src="{{LOGO}}" alt="INFOTEP">
+    <div class="titulo">Sistema de Gestión de<br>Matrices de Riesgo</div>
+    <div class="subtitulo">Informe técnico del proyecto</div>
+    <div class="linea"></div>
+    <div class="datos">
+        Instituto Nacional de Formación Técnico Profesional (INFOTEP)<br>
+        Formulario de referencia RT-01-NI-ONA-156<br>
+        Versión 1.0 · {{FECHA}}
+    </div>
+</div>
+
+<!-- ======================= ÍNDICE ======================= -->
+<div class="indice">
+<h1>Contenido</h1>
+<table class="toc">
+    <tr><td class="num">1.</td><td>Resumen ejecutivo</td><td class="pag">{{PAG_1}}</td></tr>
+    <tr><td class="num">2.</td><td>Contexto, objetivos y alcance</td><td class="pag">{{PAG_2}}</td></tr>
+    <tr><td class="num">3.</td><td>Arquitectura de la solución</td><td class="pag">{{PAG_3}}</td></tr>
+    <tr><td class="num">4.</td><td>Tecnologías y versiones</td><td class="pag">{{PAG_4}}</td></tr>
+    <tr><td class="num">5.</td><td>Modelo de datos</td><td class="pag">{{PAG_5}}</td></tr>
+    <tr><td class="num">6.</td><td>Reglas de negocio</td><td class="pag">{{PAG_6}}</td></tr>
+    <tr><td class="num">7.</td><td>Seguridad</td><td class="pag">{{PAG_7}}</td></tr>
+    <tr><td class="num">8.</td><td>Auditoría y trazabilidad</td><td class="pag">{{PAG_8}}</td></tr>
+    <tr><td class="num">9.</td><td>API REST</td><td class="pag">{{PAG_9}}</td></tr>
+    <tr><td class="num">10.</td><td>Exportación e importación de matrices</td><td class="pag">{{PAG_10}}</td></tr>
+    <tr><td class="num">11.</td><td>Aplicación web (frontend)</td><td class="pag">{{PAG_11}}</td></tr>
+    <tr><td class="num">12.</td><td>Calidad y pruebas</td><td class="pag">{{PAG_12}}</td></tr>
+    <tr><td class="num">13.</td><td>Despliegue, operación y respaldo</td><td class="pag">{{PAG_13}}</td></tr>
+    <tr><td class="num">14.</td><td>Ampliación de noviembre de 2026</td><td class="pag">{{PAG_14}}</td></tr>
+    <tr><td class="num">15.</td><td>Estado del proyecto y recomendaciones</td><td class="pag">{{PAG_15}}</td></tr>
+    <tr><td class="num">16.</td><td>Anexos: documentación de referencia y comandos</td><td class="pag">{{PAG_16}}</td></tr>
+</table>
+</div>
+
+<!-- ======================= 1 ======================= -->
+<h1>1. Resumen ejecutivo</h1>
+
+<p>El <strong>Sistema de Gestión de Matrices de Riesgo</strong> digitaliza la gestión de los riesgos institucionales del INFOTEP, que hasta ahora se llevaba en archivos Excel independientes por departamento con el formulario <strong>RT-01-NI-ONA-156</strong>. El sistema centraliza las matrices, conserva cada edición o periodo sin sobrescribir los anteriores, calcula el nivel de riesgo con una matriz de calor configurable, registra el seguimiento con evidencias y deja constancia de quién hizo cada cambio y cuándo.</p>
+
+<p>La solución está formada por una <strong>API REST en Laravel 13</strong> y una <strong>aplicación web (SPA) en Nuxt 4</strong>, desplegadas con Docker sobre <strong>MariaDB 11.4</strong> en un mismo dominio con HTTPS. Cumple los nueve requisitos funcionales (RF-1 a RF-9) y los requisitos no funcionales del documento de requisitos del DRO. En noviembre de 2026 se amplió con cinco funcionalidades: creación de matrices por los encargados, historial de movimientos por área, perfil de usuario, ayuda con recorrido guiado y esta documentación técnica.</p>
+
+<table class="cifras">
+    <tr>
+        <td><span class="n">9 / 9</span><span class="t">requisitos funcionales cubiertos</span></td>
+        <td><span class="n">5</span><span class="t">roles con alcance por departamento</span></td>
+        <td><span class="n">64</span><span class="t">rutas de API (73 peticiones documentadas)</span></td>
+        <td><span class="n">16</span><span class="t">tablas de negocio</span></td>
+        <td><span class="n">20</span><span class="t">pantallas de la aplicación</span></td>
+        <td><span class="n">496</span><span class="t">pruebas automáticas correctas</span></td>
+    </tr>
+</table>
+
+<h2>Decisiones técnicas principales</h2>
+<table>
+    <thead><tr><th style="width: 30%;">Decisión</th><th>Motivo</th></tr></thead>
+    <tr><td><strong>API y SPA separadas, mismo dominio</strong></td><td>Separación exigida por los requisitos. Servirlas desde el mismo dominio evita configurar CORS en producción y permite cookies de sesión <code>Secure</code>, <code>HttpOnly</code> y <code>SameSite=Lax</code>.</td></tr>
+    <tr><td><strong>Sesión por cookies (Sanctum SPA), no tokens</strong></td><td>Ningún token queda accesible desde JavaScript. La sesión se puede cerrar por inactividad en el servidor, como exige el DRO.</td></tr>
+    <tr><td><strong>La API es la única autoridad</strong></td><td>Cada permiso, alcance, estado y validación se comprueba en el servidor. La interfaz solo oculta lo que el rol no puede usar.</td></tr>
+    <tr><td><strong>Nada se borra físicamente</strong></td><td>Trazabilidad: se desactiva, se anula con motivo o se usa borrado lógico. Las ediciones publicadas son inmutables.</td></tr>
+    <tr><td><strong>Auditoría automática en los modelos</strong></td><td>Un único punto de escritura. Ninguna funcionalidad nueva puede olvidar registrar sus cambios.</td></tr>
+    <tr><td><strong>Exportación en el servidor</strong></td><td>PDF y Excel con exactamente el mismo contenido y el formato institucional, sin depender del navegador.</td></tr>
+</table>
+
+<!-- ======================= 2 ======================= -->
+<h1>2. Contexto, objetivos y alcance</h1>
+
+<h2>Situación de partida</h2>
+<p>Cada departamento (Formación Profesional, Admisión, Compras, Servicios Empresariales, entre otros) mantenía su matriz de riesgos en un Excel propio, actualizado a mano en cada revisión. Esto dificultaba consolidar la información entre direcciones, seguir la historia de un riesgo concreto, comparar periodos y saber quién había cambiado qué. En los Excel el nivel de riesgo no se calculaba: se elegía a mano de una lista.</p>
+
+<h2>Objetivos</h2>
+<ul>
+    <li>Centralizar las matrices de todos los departamentos con la estructura y la terminología del formulario RT-01-NI-ONA-156.</li>
+    <li>Versionar las ediciones o periodos de cada matriz en lugar de sobrescribirlas.</li>
+    <li>Calcular el nivel de riesgo de forma automática y coherente.</li>
+    <li>Registrar el seguimiento de los tratamientos con evidencias.</li>
+    <li>Ofrecer reportes, comparación entre periodos y exportación con el formato institucional.</li>
+    <li>Garantizar la trazabilidad completa de los cambios.</li>
+</ul>
+
+<h2>Alcance</h2>
+<p>Primera entrega: las cinco matrices analizadas (Formación Profesional SFP, Admisión, Compras / Abastecimiento, Servicios Empresariales y Formación Profesional CTIVPR / Los Centros). El sistema es <strong>genérico</strong>: nuevos departamentos, procesos y catálogos se agregan desde la aplicación, sin cambios de código.</p>
+<p><strong>Fuera de alcance</strong> (según los requisitos): integración con el SNFP u otros sistemas, firma digital, validez legal externa de los reportes y notificaciones por correo (fase 2 opcional).</p>
+
+<h2>Cumplimiento de los requisitos funcionales</h2>
+<table>
+    <thead><tr><th style="width: 22%;">Requisito</th><th>Cómo se cumple</th><th style="width: 11%;">Estado</th></tr></thead>
+    <tr><td><strong>RF-1</strong> Catálogos</td><td>Departamentos, procesos, factores, periodicidades, niveles, escalas y matriz de calor 4×4 editables por el Administrador. Se desactivan, no se borran.</td><td class="estado-ok">Cumplido</td></tr>
+    <tr><td><strong>RF-2</strong> Matrices</td><td>Proceso = matriz; ediciones con estado borrador → vigente → archivada; nueva edición vacía o clonada de otra; metadatos del encabezado institucional.</td><td class="estado-ok">Cumplido</td></tr>
+    <tr><td><strong>RF-3</strong> Riesgos</td><td>Los 13 campos del Excel; nivel calculado con la matriz de calor y ajuste manual con justificación obligatoria.</td><td class="estado-ok">Cumplido</td></tr>
+    <tr><td><strong>RF-4</strong> Seguimiento</td><td>Histórico no editable (se anula con motivo), estado del tratamiento y evidencias PDF, imagen y Excel.</td><td class="estado-ok">Cumplido</td></tr>
+    <tr><td><strong>RF-5</strong> Comparación</td><td>Riesgos agregados, cerrados y cambios de nivel entre dos ediciones cualesquiera del mismo proceso.</td><td class="estado-ok">Cumplido</td></tr>
+    <tr><td><strong>RF-6</strong> Reportes</td><td>Dashboard con mapa de calor, prioritarios pendientes, atrasos, filtros combinables y exportación PDF/Excel.</td><td class="estado-ok">Cumplido</td></tr>
+    <tr><td><strong>RF-7</strong> Migración</td><td>Importador de Excel (comando y pantalla) con vista previa sin escribir. Cuatro de los cinco archivos validados; Servicios Empresariales espera sus datos (se entregó una plantilla).</td><td class="estado-ok">Cumplido</td></tr>
+    <tr><td><strong>RF-8</strong> Usuarios</td><td>Usuario con rol y departamentos; Policies por rol y alcance.</td><td class="estado-ok">Cumplido</td></tr>
+    <tr><td><strong>RF-9</strong> Auditoría</td><td>Registro inmutable de quién, qué, cuándo, con valores anteriores y nuevos, más inicios y cierres de sesión.</td><td class="estado-ok">Cumplido</td></tr>
+</table>
+
+<h2>Requisitos no funcionales</h2>
+<table>
+    <thead><tr><th style="width: 22%;">Requisito</th><th>Solución</th></tr></thead>
+    <tr><td>Seguridad</td><td>Laravel Sanctum, Policies por rol y departamento, contraseñas con bcrypt, HTTPS obligatorio con HSTS (sección 7).</td></tr>
+    <tr><td>Bloqueo por inactividad</td><td>Sesión de 4 minutos; aviso un minuto antes en la aplicación.</td></tr>
+    <tr><td>Trazabilidad</td><td>Borrado lógico de riesgos, ediciones publicadas inmutables, auditoría completa.</td></tr>
+    <tr><td>Usabilidad</td><td>Formularios con los campos y el orden del Excel, mensajes en español, confirmaciones claras, recorrido guiado por rol.</td></tr>
+    <tr><td>Rendimiento</td><td>Consultas paginadas e índices; el dashboard solo cuenta ediciones vigentes.</td></tr>
+    <tr><td>Escalabilidad</td><td>Departamentos, procesos y catálogos por configuración.</td></tr>
+    <tr><td>Exportación fiel</td><td>Encabezado institucional completo (Dirección, Proceso, código, edición, fecha de revisión).</td></tr>
+    <tr><td>Respaldo</td><td>Procedimiento documentado para la base de datos y las evidencias (sección 13).</td></tr>
+</table>
+
+<!-- ======================= 3 ======================= -->
+<h1>3. Arquitectura de la solución</h1>
+
+<p>El sistema se compone de dos proyectos independientes, cada uno en su repositorio, que se publican juntos detrás de un único servidor web:</p>
+<ul>
+    <li><code>SistemaMatrizRiesgo</code>: la <strong>API</strong> en Laravel. No genera pantallas: responde JSON y atiende el inicio de sesión.</li>
+    <li><code>SistemaMatrizRiesgo-frontend</code>: la <strong>aplicación web</strong> en Nuxt, que se compila a archivos estáticos.</li>
+</ul>
+
+<h2>Vista de despliegue</h2>
+<table class="diag">
+    <tr><td colspan="2" class="caja gris"><b>Navegador del usuario</b><br><span class="etq">Chrome, Edge o Firefox recientes; la aplicación se ejecuta en el navegador</span></td></tr>
+    <tr><td colspan="2" class="flecha">▼ <span class="etq">HTTPS (TLS 1.2 / 1.3), un único dominio</span></td></tr>
+    <tr><td colspan="2" class="caja oro"><b>web · Nginx 1.28</b> — único servicio expuesto (puertos 80 → 443)<br><span class="etq">Cabeceras de seguridad, CSP, redirección a HTTPS</span></td></tr>
+    <tr><td class="flecha">▼ <span class="etq">/</span></td><td class="flecha">▼ <span class="etq">/api · /sanctum · /login (POST) · /logout · contraseñas</span></td></tr>
+    <tr>
+        <td class="caja" style="width: 50%;"><b>Aplicación web (SPA)</b><br><span class="etq">Archivos estáticos generados con Nuxt 4</span></td>
+        <td class="caja" style="width: 50%;"><b>app · Laravel 13 (PHP-FPM 8.3)</b><br><span class="etq">API REST, autenticación, exportación e importación</span></td>
+    </tr>
+    <tr><td></td><td class="flecha">▼</td></tr>
+    <tr>
+        <td class="caja gris"><b>worker</b><br><span class="etq">Cola de trabajos (queue:work)</span></td>
+        <td class="caja"><b>db · MariaDB 11.4</b><br><span class="etq">Sin puerto público · volumen <code>db</code></span></td>
+    </tr>
+    <tr><td colspan="2" class="caja gris"><b>Volumen storage</b> — evidencias adjuntas (privadas), sesiones y registros</td></tr>
+</table>
+
+<h2>Decisiones de arquitectura</h2>
+<ul>
+    <li><strong>SPA sin renderizado en servidor</strong> (<code>ssr: false</code>). Es una aplicación interna detrás de un inicio de sesión: no necesita SEO y la sesión vive en cookies de la API que un servidor de Nuxt no recibiría. Por eso la SPA se sirve como archivos estáticos desde Nginx, sin un proceso Node en producción.</li>
+    <li><strong>Mismo dominio.</strong> Nginx reparte por ruta: <code>/</code> sirve la SPA y <code>/api</code>, <code>/sanctum</code> y las rutas de autenticación van a Laravel. <code>GET /login</code> es la pantalla de la SPA y <code>POST /login</code> la acción de Laravel: Nginx las separa por método.</li>
+    <li><strong>La API decide.</strong> La SPA consulta los <code>permisos</code> que calcula la API para mostrar u ocultar botones, sin duplicar la lógica de autorización.</li>
+</ul>
+
+<div class="junto">
+<h2>Recorrido de una petición en la API</h2>
+<p>Toda petición que modifica datos atraviesa las mismas capas, cada una con una sola responsabilidad:</p>
+<table class="diag cadena">
+    <tr>
+        <td class="caja"><b>Middleware</b><br><span class="etq">sesión, usuario activo, límite de peticiones</span></td>
+        <td class="flecha">►</td>
+        <td class="caja"><b>FormRequest</b><br><span class="etq">validación y campos prohibidos</span></td>
+        <td class="flecha">►</td>
+        <td class="caja"><b>Policy</b><br><span class="etq">rol, departamento y estado</span></td>
+        <td class="flecha">►</td>
+        <td class="caja"><b>Servicio</b><br><span class="etq">reglas de negocio y transacciones</span></td>
+        <td class="flecha">►</td>
+        <td class="caja"><b>Modelo</b><br><span class="etq">invariantes y auditoría automática</span></td>
+        <td class="flecha">►</td>
+        <td class="caja"><b>Resource</b><br><span class="etq">respuesta JSON con permisos</span></td>
+    </tr>
+</table>
+</div>
+
+<table>
+    <thead><tr><th style="width: 22%;">Capa</th><th style="width: 30%;">Ubicación</th><th>Responsabilidad</th></tr></thead>
+    <tr><td>Rutas</td><td><code>routes/api.php</code></td><td>Grupo protegido por <code>auth:sanctum</code> y <code>EnsureUserIsActive</code>; límite de 20/min para exportar e importar.</td></tr>
+    <tr><td>Controladores</td><td><code>app/Http/Controllers/Api</code></td><td>Delgados: reciben la petición validada, autorizan y delegan.</td></tr>
+    <tr><td>Validación</td><td><code>app/Http/Requests</code></td><td>Reglas y mensajes en español. Los campos que el cliente no puede fijar (estado, creador, rol propio…) se declaran prohibidos.</td></tr>
+    <tr><td>Autorización</td><td><code>app/Policies</code></td><td>Una Policy por modelo con las reglas de rol, alcance y estado.</td></tr>
+    <tr><td>Negocio</td><td><code>app/Services</code></td><td><code>MatrizService</code>, <code>RiesgoService</code>, <code>SeguimientoService</code>, <code>CalculadoraNivelRiesgo</code>, <code>Auditor</code>, reportes, exportación e importación.</td></tr>
+    <tr><td>Datos</td><td><code>app/Models</code></td><td>Modelos Eloquent; el trait <code>Auditable</code> registra los cambios; los modelos rechazan cambios prohibidos aunque se omita la Policy.</td></tr>
+    <tr><td>Respuesta</td><td><code>app/Http/Resources</code></td><td>Forma del JSON; incluyen los <code>permisos</code> del usuario sobre cada registro.</td></tr>
+</table>
+
+<!-- ======================= 4 ======================= -->
+<h1>4. Tecnologías y versiones</h1>
+
+<p>Versiones instaladas según los archivos de bloqueo (<code>composer.lock</code> y <code>package-lock.json</code>). Los requisitos pedían Laravel 12 «o la versión estable vigente al inicio del proyecto»: se usó Laravel 13.</p>
+
+<h2>API</h2>
+<table>
+    <thead><tr><th style="width: 26%;">Componente</th><th style="width: 14%;">Versión</th><th>Uso</th></tr></thead>
+    <tr><td>PHP</td><td>8.3</td><td>Lenguaje del servidor (PHP-FPM en producción).</td></tr>
+    <tr><td>Laravel</td><td>13.32.0</td><td>Framework de la API.</td></tr>
+    <tr><td>Laravel Sanctum</td><td>4.3.3</td><td>Autenticación de la SPA mediante cookies de sesión.</td></tr>
+    <tr><td>Laravel Fortify</td><td>1.39.0</td><td>Inicio y cierre de sesión, recuperación y cambio de contraseña (sin vistas).</td></tr>
+    <tr><td>dompdf/dompdf</td><td>3.1.6</td><td>Exportación de matrices a PDF (y generación de este informe y del manual).</td></tr>
+    <tr><td>phpoffice/phpspreadsheet</td><td>5.10.0</td><td>Exportación a Excel e importación de los Excel institucionales.</td></tr>
+    <tr><td>MariaDB</td><td>11.4</td><td>Base de datos de producción. En desarrollo y pruebas se usa SQLite.</td></tr>
+</table>
+
+<h2>Aplicación web</h2>
+<table>
+    <thead><tr><th style="width: 26%;">Componente</th><th style="width: 14%;">Versión</th><th>Uso</th></tr></thead>
+    <tr><td>Nuxt</td><td>4.6.1</td><td>Framework de la aplicación (modo SPA).</td></tr>
+    <tr><td>Vue / vue-router</td><td>3.5.43 / 5.4.0</td><td>Componentes y navegación.</td></tr>
+    <tr><td>Nuxt UI</td><td>4.11.2</td><td>Componentes de interfaz: panel, tablas, formularios, modales, notificaciones.</td></tr>
+    <tr><td>Tailwind CSS</td><td>4.3.3</td><td>Estilos.</td></tr>
+    <tr><td>TypeScript</td><td>6.0.3</td><td>Tipado del código y de las respuestas de la API.</td></tr>
+    <tr><td>driver.js</td><td>1.10.2</td><td>Recorrido guiado. Fijada a esa versión exacta; se descarga solo al iniciar el recorrido.</td></tr>
+    <tr><td>Iconos Lucide</td><td>1.2.x</td><td>Iconos empaquetados en la aplicación: el navegador no consulta servicios externos.</td></tr>
+</table>
+
+<h2>Herramientas de calidad e infraestructura</h2>
+<table>
+    <thead><tr><th style="width: 26%;">Herramienta</th><th style="width: 14%;">Versión</th><th>Uso</th></tr></thead>
+    <tr><td>Pest</td><td>4.7.8</td><td>Pruebas automáticas de la API.</td></tr>
+    <tr><td>Larastan (PHPStan)</td><td>3.12.1</td><td>Análisis estático, nivel 7 de 10.</td></tr>
+    <tr><td>Laravel Pint</td><td>1.32.1</td><td>Formato uniforme del código PHP.</td></tr>
+    <tr><td>vue-tsc</td><td>3.x</td><td>Verificación de tipos de la aplicación web.</td></tr>
+    <tr><td>Docker / Compose</td><td>—</td><td>Construcción y ejecución de los cuatro servicios.</td></tr>
+    <tr><td>Nginx</td><td>1.28</td><td>Servidor web y proxy hacia la API.</td></tr>
+    <tr><td>Node.js</td><td>24</td><td>Solo para compilar la aplicación web; no se ejecuta en producción.</td></tr>
+</table>
+
+<!-- ======================= 5 ======================= -->
+<h1>5. Modelo de datos</h1>
+
+<p>El diagrama entidad-relación completo, generado a partir del esquema real de MariaDB, está en <code>docs/erd.md</code>. Esta sección resume su estructura.</p>
+
+<h2>Vista general</h2>
+<table class="diag cadena">
+    <tr>
+        <td class="caja"><b>Departamento</b></td><td class="flecha">►</td>
+        <td class="caja"><b>Proceso</b><br><span class="etq">= matriz</span></td><td class="flecha">►</td>
+        <td class="caja"><b>Edición</b><br><span class="etq">borrador / vigente / archivada</span></td><td class="flecha">►</td>
+        <td class="caja"><b>Riesgo</b><br><span class="etq">fila del formulario</span></td><td class="flecha">►</td>
+        <td class="caja"><b>Seguimiento</b><br><span class="etq">histórico</span></td><td class="flecha">►</td>
+        <td class="caja"><b>Evidencia</b><br><span class="etq">archivo privado</span></td>
+    </tr>
+</table>
+<p class="pie-tabla">Cada flecha es una relación «uno a muchos». Los usuarios se asignan a departamentos; los catálogos (factores, periodicidades, niveles, escalas, matriz de calor) alimentan a los riesgos; la auditoría registra los cambios de todas las entidades.</p>
+
+<div class="clave"><strong>Equivalencia de nombres.</strong> En la interfaz y en el lenguaje de la institución, la «matriz» de un proceso es el modelo <code>Proceso</code> y cada «edición» o periodo es el modelo <code>Matriz</code> (tabla <code>matrices</code>). Las ediciones se encadenan con <code>edicion_anterior_id</code> y cada riesgo copiado apunta a su original con <code>riesgo_origen_id</code>, lo que permite comparar periodos.</div>
+
+<h2>Tablas de negocio</h2>
+<table>
+    <thead><tr><th style="width: 22%;">Tabla</th><th>Contenido</th></tr></thead>
+    <tr><td><code>roles</code></td><td>Los cinco roles fijos del sistema.</td></tr>
+    <tr><td><code>users</code></td><td>Usuarios: rol, estado activo, contraseña con bcrypt (12 rondas en producción) y estado del recorrido guiado.</td></tr>
+    <tr><td><code>user_departamento</code></td><td>Departamentos asignados a cada usuario (alcance de los encargados).</td></tr>
+    <tr><td><code>departamentos</code></td><td>Departamentos o direcciones; guardan la Dirección del encabezado.</td></tr>
+    <tr><td><code>procesos</code></td><td>Procesos de cada departamento (una matriz por proceso); nombre único dentro del departamento; usuario que lo creó.</td></tr>
+    <tr><td><code>matrices</code></td><td>Ediciones de la matriz con su estado, fecha de revisión, fechas de publicación y archivo, y edición anterior.</td></tr>
+    <tr><td><code>riesgos</code></td><td>Los 13 campos del formulario; nivel calculado, nivel ajustado con justificación, estado del tratamiento, riesgo de origen.</td></tr>
+    <tr><td><code>riesgo_factor</code></td><td>Factores de cada riesgo (un riesgo puede tener varios, como «Pnal / Tec»).</td></tr>
+    <tr><td><code>factores_riesgo</code></td><td>Catálogo de factores.</td></tr>
+    <tr><td><code>periodicidades</code></td><td>Catálogo de periodicidades con el plazo en días para detectar atrasos.</td></tr>
+    <tr><td><code>niveles_riesgo</code></td><td>Bajo, Moderado, Alto y Crítico, con nombre y color editables.</td></tr>
+    <tr><td><code>escala_niveles</code></td><td>Nombre de los valores 1–4 de probabilidad e impacto.</td></tr>
+    <tr><td><code>matriz_calor_celdas</code></td><td>Las 16 celdas Probabilidad × Impacto y el nivel de cada una.</td></tr>
+    <tr><td><code>seguimientos</code></td><td>Histórico de seguimiento: fecha, descripción, autor, cambio de estado del tratamiento, anulación con motivo.</td></tr>
+    <tr><td><code>evidencias</code></td><td>Archivos adjuntos: ruta privada, nombre original, tipo, tamaño y huella SHA-256.</td></tr>
+    <tr><td><code>auditoria</code></td><td>Registro de cambios con el área afectada (departamento, proceso y edición).</td></tr>
+</table>
+<p class="pie-tabla">Tablas de infraestructura: sesiones, recuperación de contraseñas, caché y límites de peticiones, cola de trabajos y control de migraciones.</p>
+
+<h2>Reglas de integridad</h2>
+<ul>
+    <li><strong>Ningún borrado en cascada desde los datos de negocio.</strong> Las claves foráneas son <code>RESTRICT</code>: la base de datos impide borrar un registro del que dependen otros.</li>
+    <li><strong>Desactivar en lugar de borrar</strong> usuarios, departamentos, procesos, factores y periodicidades.</li>
+    <li><strong>Borrado lógico</strong> solo en ediciones en borrador nunca publicadas y en riesgos de un borrador.</li>
+    <li><strong>Ediciones inmutables:</strong> una edición vigente o archivada y sus riesgos no se modifican; el modelo lo impide aunque un error de programación omitiera la Policy.</li>
+    <li><strong>Unicidad:</strong> una sola edición vigente por proceso; nombre de edición único por proceso; nombre de proceso único por departamento.</li>
+</ul>
+
+<!-- ======================= 6 ======================= -->
+<h1>6. Reglas de negocio</h1>
+
+<h2>6.1 Nivel de riesgo: la matriz de calor</h2>
+<p>El nivel se obtiene de una tabla 4 × 4 que asigna un nivel a cada combinación de probabilidad e impacto. El Administrador puede cambiar cualquier celda. Los valores iniciales siguen la regla de la <strong>suma P + I</strong> (2–4 Bajo, 5–6 Moderado, 7 Alto, 8 Crítico):</p>
+<table class="calor" style="width: 82%;">
+    <tr><td class="eje">Probabilidad \ Impacto</td><td class="eje">1</td><td class="eje">2</td><td class="eje">3</td><td class="eje">4</td></tr>
+    <tr><td class="eje">4</td><td class="moderado">Moderado</td><td class="moderado">Moderado</td><td class="alto">Alto</td><td class="critico">Crítico</td></tr>
+    <tr><td class="eje">3</td><td class="bajo">Bajo</td><td class="moderado">Moderado</td><td class="moderado">Moderado</td><td class="alto">Alto</td></tr>
+    <tr><td class="eje">2</td><td class="bajo">Bajo</td><td class="bajo">Bajo</td><td class="moderado">Moderado</td><td class="moderado">Moderado</td></tr>
+    <tr><td class="eje">1</td><td class="bajo">Bajo</td><td class="bajo">Bajo</td><td class="bajo">Bajo</td><td class="moderado">Moderado</td></tr>
+</table>
+<p>INFOTEP no disponía de una tabla oficial. Se analizaron las 15 filas evaluadas de los Excel entregados: la suma reproduce <strong>13 de 15</strong>, mientras que cualquier regla basada en el producto P × I reproduce como máximo 3 (1 × 4 y 2 × 2 dan el mismo producto, pero en el Excel uno es Moderado y el otro Bajo). Las dos filas restantes se tratan como ajustes manuales justificados. Una prueba automática fija la tabla y los casos reales.</p>
+
+<h2>6.2 Nivel calculado, ajustado y efectivo</h2>
+<ul>
+    <li><strong>Calculado:</strong> lo fija el servidor con la matriz de calor y nunca llega desde la petición. Se guarda en el riesgo: si la matriz de calor cambia, las ediciones publicadas conservan su nivel; los borradores se recalculan.</li>
+    <li><strong>Ajustado:</strong> opcional; exige justificación, que el riesgo esté evaluado y que sea distinto del calculado. Se conservan los dos valores.</li>
+    <li><strong>Efectivo:</strong> el ajustado si existe; si no, el calculado. Es el que cuentan el dashboard y los reportes.</li>
+</ul>
+
+<h2>6.3 Ciclo de vida de una edición</h2>
+<table class="diag cadena" style="width: 75%;">
+    <tr>
+        <td class="caja" style="width: 30%;"><b>Borrador</b><br><span class="etq">editable; no cuenta en reportes</span></td>
+        <td class="flecha" style="width: 5%;">►<br><span class="etq">publicar</span></td>
+        <td class="caja oro" style="width: 30%;"><b>Vigente</b><br><span class="etq">fija; admite seguimiento</span></td>
+        <td class="flecha" style="width: 5%;">►<br><span class="etq">archivar</span></td>
+        <td class="caja gris" style="width: 30%;"><b>Archivada</b><br><span class="etq">solo consulta</span></td>
+    </tr>
+</table>
+<ul>
+    <li>Publicar exige que todos los riesgos tengan probabilidad e impacto, y <strong>archiva la vigente anterior en la misma transacción</strong>: nunca hay dos vigentes.</li>
+    <li>Para reevaluar se <strong>clona</strong> cualquier edición (también una archivada): se copian los riesgos con sus factores, ajustes y estado del tratamiento, y cada copia apunta a su original. Los seguimientos no se copian.</li>
+    <li>Un borrador nunca publicado se puede <strong>descartar</strong> (borrado lógico).</li>
+    <li>Los campos de estado y de relación no se aceptan en las peticiones: solo cambian mediante publicar, archivar y clonar.</li>
+</ul>
+
+<h2>6.4 Seguimiento y evidencias</h2>
+<ul>
+    <li>Solo sobre riesgos de ediciones <strong>vigentes</strong>; lo registran el Administrador y los encargados en sus departamentos.</li>
+    <li>El autor es siempre el usuario de la sesión. La fecha no puede ser futura.</li>
+    <li>Un seguimiento puede cambiar el estado del tratamiento (pendiente, en progreso, cumplido); se guardan el estado anterior y el nuevo.</li>
+    <li><strong>No se edita ni se borra:</strong> un error se anula con motivo y sigue visible. Si era el último cambio de estado, el riesgo vuelve al estado anterior.</li>
+    <li>Evidencias: PDF, JPG/PNG y XLS/XLSX, hasta 5 por seguimiento y 10 MB cada una. El tipo se comprueba por el <strong>contenido real</strong> del archivo.</li>
+</ul>
+
+<h2>6.5 Seguimientos atrasados</h2>
+<p>Un riesgo está atrasado si su edición está vigente, su tratamiento no está cumplido, su periodicidad tiene plazo y no tiene ningún seguimiento válido dentro de ese plazo, contado desde el último seguimiento o, si no hay ninguno, desde la publicación. Plazos iniciales: Diario 1, Mensual 30, Trimestral 90, Cuatrimestral 120 y Anual 365 días; «Cuando ocurra» y «Por cada módulo» no tienen plazo.</p>
+
+<h2>6.6 Comparación de ediciones</h2>
+<p>Entre dos ediciones del mismo proceso se calculan los riesgos <strong>agregados</strong> (sin antecesor), <strong>cerrados</strong> (que no continúan) y los <strong>cambios de nivel</strong> efectivo. El vínculo <code>riesgo_origen_id</code> se sigue a lo largo de toda la cadena, de modo que también se comparan ediciones no consecutivas.</p>
+
+<!-- ======================= 7 ======================= -->
+<h1>7. Seguridad</h1>
+
+<h2>7.1 Autenticación y sesión</h2>
+<ul>
+    <li><strong>Laravel Sanctum en modo SPA:</strong> la sesión se mantiene con una cookie cifrada, <code>Secure</code>, <code>HttpOnly</code> y <code>SameSite=Lax</code>. No se emiten tokens de acceso.</li>
+    <li><strong>Protección CSRF:</strong> toda petición que modifica datos envía el valor de la cookie <code>XSRF-TOKEN</code> en la cabecera <code>X-XSRF-TOKEN</code>. Un único cliente HTTP en la aplicación lo hace siempre.</li>
+    <li><strong>Inactividad:</strong> la sesión expira a los 4 minutos sin actividad. La aplicación avisa un minuto antes y, si la API responde 401, vuelve a la pantalla de inicio de sesión.</li>
+    <li><strong>Usuarios desactivados:</strong> el middleware <code>EnsureUserIsActive</code> cierra su sesión en la siguiente petición (401), tanto en la API como en las rutas de contraseña.</li>
+    <li><strong>Contraseñas:</strong> bcrypt; en producción, mínimo 8 caracteres con mayúsculas, minúsculas, números y símbolos, y rechazo de contraseñas que aparecen en filtraciones conocidas. Recuperación por correo con enlace que caduca a los 60 minutos y la misma respuesta exista o no la cuenta.</li>
+</ul>
+
+<h2>7.2 Autorización por rol y departamento</h2>
+<p>Los permisos combinan el <strong>rol</strong> con el <strong>alcance</strong>: los encargados solo actúan sobre los departamentos que el Administrador les asignó. Las reglas de alcance están en un único lugar (el modelo <code>User</code> y el filtro <code>Departamento::visiblesPara</code>), y las Policies y los reportes las reutilizan.</p>
+<table>
+    <thead><tr>
+        <th style="width: 31%;">Capacidad</th>
+        <th style="width: 13%;">Administrador</th>
+        <th style="width: 14%;">Enc. Departamento</th>
+        <th style="width: 14%;">Enc. Seguimiento</th>
+        <th style="width: 14%;">Auditor</th>
+        <th style="width: 14%;">Dirección</th>
+    </tr></thead>
+    <tr><td>Alcance de consulta</td><td class="si">Todos</td><td class="si">Los suyos</td><td class="si">Los suyos</td><td class="si">Todos</td><td class="si">Todos</td></tr>
+    <tr><td>Crear una matriz (proceso)</td><td class="si">Sí</td><td class="si">Sí</td><td class="no">No</td><td class="no">No</td><td class="no">No</td></tr>
+    <tr><td>Editar o desactivar una matriz</td><td class="si">Sí</td><td class="si">Las que creó</td><td class="no">No</td><td class="no">No</td><td class="no">No</td></tr>
+    <tr><td>Ediciones y riesgos</td><td class="si">Sí</td><td class="si">Sí</td><td class="no">No</td><td class="no">No</td><td class="no">No</td></tr>
+    <tr><td>Seguimiento y evidencias</td><td class="si">Sí</td><td class="si">Sí</td><td class="si">Sí</td><td class="no">No</td><td class="no">No</td></tr>
+    <tr><td>Dashboard, reportes, comparar, exportar</td><td class="si">Sí</td><td class="si">Sí</td><td class="si">Sí</td><td class="si">Sí</td><td class="si">Sí</td></tr>
+    <tr><td>Historial de movimientos</td><td class="si">Todos</td><td class="si">Los suyos</td><td class="si">Los suyos</td><td class="no">No</td><td class="no">No</td></tr>
+    <tr><td>Auditoría completa</td><td class="si">Sí</td><td class="no">No</td><td class="no">No</td><td class="si">Sí</td><td class="no">No</td></tr>
+    <tr><td>Importar desde Excel</td><td class="si">Sí</td><td class="no">No</td><td class="no">No</td><td class="no">No</td><td class="no">No</td></tr>
+    <tr><td>Usuarios, departamentos, catálogos</td><td class="si">Sí</td><td class="no">No</td><td class="no">No</td><td class="no">No</td><td class="no">No</td></tr>
+    <tr><td>Perfil propio y recorrido guiado</td><td class="si">Sí</td><td class="si">Sí</td><td class="si">Sí</td><td class="si">Sí</td><td class="si">Sí</td></tr>
+</table>
+<p>Las reglas de estado (por ejemplo, no modificar una edición vigente) se aplican <strong>también al Administrador</strong>. Un administrador no puede desactivarse ni quitarse el rol a sí mismo, para que el sistema nunca quede sin nadie que pueda gestionarlo.</p>
+
+<h2>7.3 Validación y protección de los datos</h2>
+<ul>
+    <li>Toda entrada se valida en el servidor; la validación de la interfaz es solo una ayuda.</li>
+    <li>Los campos que el usuario no debe fijar (estado, creador, autor, rol, departamentos, correo propio) se rechazan con un error 422 explicativo y los asigna el servidor.</li>
+    <li>Las evidencias se guardan fuera de la carpeta pública con nombre aleatorio. Solo se descargan a través de la API, que comprueba el permiso y responde como descarga con <code>nosniff</code>. Se guarda su huella SHA-256.</li>
+    <li>Exportación segura: el PDF se genera sin recursos remotos ni PHP incrustado; en Excel todo el texto se escribe como cadena, de modo que un valor que empiece por «=» nunca se ejecuta como fórmula.</li>
+    <li>Límites de peticiones por usuario: 300 por minuto en la API, 20 por minuto para exportar e importar, 5 por minuto para el inicio de sesión y la recuperación de contraseña.</li>
+    <li>En producción, Laravel bloquea los comandos destructivos de base de datos (<code>migrate:fresh</code>, <code>db:wipe</code>…).</li>
+</ul>
+
+<h2>7.4 Seguridad de la infraestructura</h2>
+<table>
+    <thead><tr><th style="width: 34%;">Medida</th><th>Detalle</th></tr></thead>
+    <tr><td>HTTPS obligatorio</td><td>Redirección de 80 a 443, TLS 1.2 y 1.3, HSTS de un año.</td></tr>
+    <tr><td>Content-Security-Policy</td><td>Solo recursos del propio dominio. Los scripts en línea se autorizan por su huella SHA-256, calculada en cada compilación; sin <code>unsafe-inline</code> ni <code>unsafe-eval</code> para scripts.</td></tr>
+    <tr><td>Cabeceras</td><td><code>X-Content-Type-Options: nosniff</code>, <code>X-Frame-Options: DENY</code>, <code>Referrer-Policy</code> y <code>Permissions-Policy</code> (sin cámara, micrófono ni ubicación).</td></tr>
+    <tr><td>Exposición mínima</td><td>Solo Nginx publica puertos; la base de datos no tiene puerto público. Sin versión de Nginx ni de PHP en las respuestas; <code>APP_DEBUG=false</code>.</td></tr>
+    <tr><td>Imágenes</td><td>La imagen de la API no incluye dependencias de desarrollo, pruebas ni archivos <code>.env</code>, y se ejecuta como <code>www-data</code>. La imagen web solo contiene archivos estáticos.</td></tr>
+    <tr><td>Red interna</td><td>La aplicación no depende de servicios externos (iconos y fuentes empaquetados).</td></tr>
+</table>
+
+<h2>7.5 Dependencias</h2>
+<p><code>composer audit</code> no reporta vulnerabilidades en las dependencias de producción. <code>npm audit</code> reporta avisos solo en herramientas de desarrollo y compilación, que no llegan a producción porque la imagen web contiene únicamente archivos estáticos. Las dependencias nuevas se incorporan con una versión publicada hace al menos dos semanas.</p>
+
+<!-- ======================= 8 ======================= -->
+<h1>8. Auditoría y trazabilidad</h1>
+
+<p>La auditoría responde a <strong>quién hizo qué, cuándo y desde dónde</strong> (RF-9). Se registra todo lo que cambia datos, más los inicios y cierres de sesión, y se conserva indefinidamente.</p>
+
+<h2>Cómo se registra</h2>
+<ul>
+    <li><strong>Automáticamente en los modelos</strong> mediante el trait <code>Auditable</code>: altas, cambios y eliminaciones, con solo los campos que cambiaron (valores anteriores y nuevos).</li>
+    <li><strong>Eventos de negocio</strong> con nombre propio: publicado, archivado, clonado, anulado, exportado, importado.</li>
+    <li><strong>Relaciones muchos a muchos</strong> (factores de un riesgo, departamentos de un usuario), registradas por el servicio correspondiente.</li>
+    <li><strong>Sesión:</strong> inicio, cierre e intento fallido (del intento solo se guarda el correo).</li>
+    <li>Todas las escrituras pasan por un único servicio, <code>Auditor</code>.</li>
+</ul>
+
+<h2>Lo que nunca se guarda</h2>
+<p>Contraseñas (solo se registra que cambiaron, como «[oculto]»), sus hashes, tokens de sesión ni de recuerdo. Las preferencias personales, como el estado del recorrido guiado, tampoco se auditan.</p>
+
+<h2>Inmutabilidad</h2>
+<p>El modelo de auditoría lanza un error ante cualquier intento de modificar o borrar un registro, y la API no ofrece ningún punto de escritura. Para producción se recomienda además que el usuario de base de datos de la aplicación no tenga permisos <code>UPDATE</code> ni <code>DELETE</code> sobre la tabla.</p>
+
+<h2>Tres formas de consultarla</h2>
+<table>
+    <thead><tr><th style="width: 30%;">Vista</th><th style="width: 30%;">Quién</th><th>Contenido</th></tr></thead>
+    <tr><td><strong>Auditoría</strong></td><td>Administrador y Auditor</td><td>Todo el registro, con filtros por registro, operación, usuario y fechas.</td></tr>
+    <tr><td><strong>Historial de un riesgo o de una edición</strong></td><td>Quien puede ver ese registro</td><td>Los cambios de ese riesgo o edición.</td></tr>
+    <tr><td><strong>Historial de movimientos</strong></td><td>Administrador (todos) y Encargados (sus departamentos)</td><td>Los cambios en las matrices de cada área, hechos por cualquier usuario, con el detalle de valores. No muestra IP ni navegador.</td></tr>
+</table>
+<p>El historial de movimientos no es un segundo registro: reutiliza la misma tabla, ampliada con el departamento, el proceso y la edición afectados. Cada modelo aporta su área; los riesgos, seguimientos y evidencias la toman de su edición, también si fueron eliminados lógicamente. Los registros anteriores a la ampliación se completaron con una migración que solo rellenó las columnas nuevas.</p>
+
+<!-- ======================= 9 ======================= -->
+<h1>9. API REST</h1>
+
+<h2>Convenciones</h2>
+<ul>
+    <li>Base <code>/api</code>, JSON en español, recursos REST anidados (<code>/departamentos/{id}/procesos</code>, <code>/procesos/{id}/matrices</code>, <code>/matrices/{id}/riesgos</code>, <code>/riesgos/{id}/seguimientos</code>).</li>
+    <li>Sin <code>DELETE</code> para los datos que se desactivan; las transiciones de estado son acciones explícitas (<code>publicar</code>, <code>archivar</code>, <code>clonar</code>, <code>anular</code>).</li>
+    <li>Listados paginados (50 por página en reportes, auditoría e historial).</li>
+    <li>Cada recurso incluye un objeto <code>permisos</code> con lo que el usuario puede hacer sobre él.</li>
+</ul>
+
+<h2>Códigos de respuesta</h2>
+<table>
+    <thead><tr><th style="width: 12%;">Código</th><th>Significado</th></tr></thead>
+    <tr><td>401</td><td>Sin sesión, sesión expirada o cuenta desactivada.</td></tr>
+    <tr><td>403</td><td>Sin permiso para la operación (con el motivo cuando aplica, por ejemplo «Solo se registra seguimiento en ediciones vigentes»).</td></tr>
+    <tr><td>404</td><td>El registro no existe o no pertenece al área consultada.</td></tr>
+    <tr><td>419</td><td>Token CSRF o sesión caducados.</td></tr>
+    <tr><td>422</td><td>Error de validación, con los mensajes por campo en español.</td></tr>
+    <tr><td>429</td><td>Demasiadas peticiones.</td></tr>
+</table>
+
+<h2>Grupos de endpoints</h2>
+<table>
+    <thead><tr><th style="width: 26%;">Grupo</th><th>Endpoints principales</th></tr></thead>
+    <tr><td>Autenticación</td><td><code>GET /sanctum/csrf-cookie</code>, <code>POST /login</code>, <code>POST /logout</code>, <code>POST /forgot-password</code>, <code>POST /reset-password</code>, <code>PUT /user/password</code></td></tr>
+    <tr><td>Usuario y perfil</td><td><code>GET /api/user</code>, <code>PUT /api/perfil</code>, <code>PUT /api/perfil/tour</code></td></tr>
+    <tr><td>Administración</td><td><code>users</code>, <code>roles</code>, <code>departamentos</code>, <code>factores-riesgo</code>, <code>periodicidades</code>, <code>niveles-riesgo</code>, <code>escalas-nivel</code>, <code>matriz-calor-celdas</code></td></tr>
+    <tr><td>Matrices y ediciones</td><td><code>departamentos/{id}/procesos</code>, <code>procesos/{id}/matrices</code>, <code>matrices/{id}/publicar|archivar|clonar</code></td></tr>
+    <tr><td>Riesgos y seguimiento</td><td><code>matrices/{id}/riesgos</code>, <code>riesgos/{id}/seguimientos</code>, <code>seguimientos/{id}/anular</code>, <code>evidencias/{id}/descargar</code></td></tr>
+    <tr><td>Reportes</td><td><code>dashboard</code>, <code>reportes/riesgos</code>, <code>matrices/{id}/comparar/{otra}</code>, <code>matrices/{id}/exportar/pdf|excel</code></td></tr>
+    <tr><td>Importación</td><td><code>procesos/{id}/importacion/vista-previa</code>, <code>procesos/{id}/importacion</code></td></tr>
+    <tr><td>Auditoría e historial</td><td><code>auditoria</code>, <code>riesgos/{id}/historial</code>, <code>matrices/{id}/historial</code>, <code>movimientos</code>, <code>movimientos/opciones</code>, <code>movimientos/{id}</code></td></tr>
+</table>
+
+<h2>Documentación de la API</h2>
+<p>La colección de Postman (<code>docs/api/SistemaMatrizRiesgo.postman_collection.json</code>) contiene <strong>73 peticiones en 12 carpetas</strong>, con descripción, permisos, ejemplos y pruebas, y puede ejecutarse por consola con Newman. La colección y la tabla de endpoints de <code>docs/api.md</code> se generan desde una única definición (<code>docs/api/generar-coleccion.py</code>), para que no se contradigan.</p>
+
+<!-- ======================= 10 ======================= -->
+<h1>10. Exportación e importación de matrices</h1>
+
+<h2>Exportación con formato institucional</h2>
+<p>Un único componente (<code>DatosMatriz</code>) arma el contenido de una edición igual que los Excel originales: encabezado «MATRIZ DE RIESGOS» con el código RT-01-NI-ONA-156 y la edición del formulario, Dirección, Proceso, fecha de revisión y edición; los tres grupos de columnas (Identificación, Análisis, Seguimiento y Control) y una fila por riesgo. PDF y Excel dibujan exactamente esos datos.</p>
+<table>
+    <thead><tr><th style="width: 14%;">Formato</th><th>Características</th></tr></thead>
+    <tr><td><strong>PDF</strong></td><td>DomPDF, carta horizontal, logo de INFOTEP, encabezado de columnas repetido en cada página y «Página X de Y». Los borradores llevan la marca «BORRADOR».</td></tr>
+    <tr><td><strong>Excel</strong></td><td>PhpSpreadsheet, <code>.xlsx</code> con la misma distribución, nivel coloreado según la matriz de calor, encabezados inmovilizados y repetidos al imprimir. La hoja lleva el nombre de la edición, como en los archivos originales.</td></tr>
+</table>
+<p>La columna Seguimiento/Evidencias lista los seguimientos válidos (nunca los anulados). El código del formulario está en configuración (<code>config/matrices.php</code>): si INFOTEP publica una edición nueva del formato, basta con cambiar una variable de entorno. Cada exportación queda en la auditoría.</p>
+
+<h2>Importación desde los Excel institucionales (RF-7)</h2>
+<table class="diag cadena">
+    <tr>
+        <td class="caja" style="width: 28%;"><b>LectorExcel</b><br><span class="etq">lee hojas visibles, resuelve celdas combinadas y normaliza el texto</span></td>
+        <td class="flecha" style="width: 4%;">►</td>
+        <td class="caja" style="width: 30%;"><b>Análisis (vista previa)</b><br><span class="etq">traduce y valida sin escribir nada: ediciones, errores y avisos con hoja y fila</span></td>
+        <td class="flecha" style="width: 4%;">►</td>
+        <td class="caja oro" style="width: 30%;"><b>Ejecución</b><br><span class="etq">crea las ediciones con los mismos servicios de la aplicación, en una sola transacción</span></td>
+    </tr>
+</table>
+<ul>
+    <li>Disponible como comando (<code>php artisan matrices:importar</code>) y desde la pantalla del proceso; solo para el Administrador.</li>
+    <li>Una edición por hoja visible, ordenadas por fecha de revisión: la última queda vigente y las anteriores archivadas, enlazadas entre sí para la comparación.</li>
+    <li>Un riesgo por sub-fila en las celdas combinadas; niveles del Excel distintos de la matriz de calor se importan como ajuste manual justificado; la columna de seguimiento se importa como un seguimiento.</li>
+    <li>Los valores se buscan en los catálogos sin distinguir mayúsculas ni acentos, con alias configurables (<code>Pnal</code> → Personal, <code>Tec</code> → Tecnológico).</li>
+    <li>Nada se importa si hay errores; solo se importa en procesos sin ediciones, para no mezclar datos.</li>
+</ul>
+<table>
+    <thead><tr><th style="width: 34%;">Archivo entregado</th><th>Resultado del análisis</th></tr></thead>
+    <tr><td>Admisión</td><td>Válido: 1 edición, 1 riesgo.</td></tr>
+    <tr><td>Compras</td><td>Válido: 3 ediciones (Edición 3, Enero-Marzo 2026, Abril-Junio 2026).</td></tr>
+    <tr><td>Formación Profesional CTIVPR / Los Centros</td><td>Válido: 1 edición, 4 riesgos.</td></tr>
+    <tr><td>Formación Profesional SFP</td><td>Válido: 1 edición, 8 riesgos; 2 niveles importados como ajuste manual.</td></tr>
+    <tr><td>Servicios Empresariales</td><td class="estado-pend">Pendiente de datos: se entregó una plantilla con validaciones para que el departamento la complete.</td></tr>
+</table>
+
+<!-- ======================= 11 ======================= -->
+<h1>11. Aplicación web (frontend)</h1>
+
+<h2>Estructura</h2>
+<table>
+    <thead><tr><th style="width: 24%;">Carpeta</th><th>Contenido</th></tr></thead>
+    <tr><td><code>pages/</code></td><td>20 pantallas, una por archivo: inicio, matrices, procesos, ediciones, comparación, reportes, historial, auditoría, administración, perfil, ayuda, inicio de sesión y contraseñas.</td></tr>
+    <tr><td><code>layouts/</code></td><td>Diseño principal con el menú lateral filtrado por rol, el aviso de inactividad y la invitación al recorrido guiado; diseño público para el inicio de sesión.</td></tr>
+    <tr><td><code>components/</code></td><td>Formularios de riesgo y usuario, paneles de seguimiento e historial, componentes del dashboard y de catálogos, encabezado común con el acceso a Perfil.</td></tr>
+    <tr><td><code>composables/</code></td><td><code>useApi</code> (cliente HTTP único con CSRF), <code>useAuth</code> (sesión), <code>useListado</code>, <code>useRecorridoGuiado</code>.</td></tr>
+    <tr><td><code>middleware/</code></td><td>Comprobación de sesión en cada ruta y restricciones de pantalla por rol.</td></tr>
+    <tr><td><code>types/api.ts</code></td><td>Tipos TypeScript de todas las respuestas de la API.</td></tr>
+</table>
+
+<h2>Patrones</h2>
+<ul>
+    <li><strong>Un solo cliente HTTP</strong> envía las cookies, pide JSON, añade la cabecera CSRF y, ante un 401, devuelve al inicio de sesión con el motivo.</li>
+    <li><strong>Permisos de la API:</strong> los botones se muestran según el objeto <code>permisos</code> de cada recurso; el menú se filtra por rol.</li>
+    <li><strong>Errores de validación</strong> de la API mostrados bajo cada campo, en español.</li>
+    <li><strong>Iconos locales</strong> (colección Lucide y una colección propia, <code>infotep:</code>): ninguna petición a servicios externos, importante en la red interna.</li>
+    <li><strong>Modo claro y oscuro</strong>, con la identidad de color de INFOTEP.</li>
+</ul>
+
+<h2>Experiencia de uso</h2>
+<ul>
+    <li><strong>Aviso de inactividad:</strong> mide el tiempo desde la última respuesta de la API, envía un «latido» si el usuario trabaja sin hacer peticiones y exige confirmar «Seguir conectado» un minuto antes del cierre.</li>
+    <li><strong>Formulario de riesgo</strong> con los campos y el orden del Excel; muestra el nivel calculado al elegir probabilidad e impacto.</li>
+    <li><strong>Perfil</strong> (botón arriba a la derecha): información personal e institucional y cambio de contraseña.</li>
+    <li><strong>Ayuda y recorrido guiado</strong> adaptados al rol: los pasos y la guía rápida salen de una sola definición, así que nunca se contradicen. El estado del recorrido se guarda en el servidor.</li>
+</ul>
+
+<!-- ======================= 12 ======================= -->
+<h1>12. Calidad y pruebas</h1>
+
+<h2>Herramientas y resultados</h2>
+<table>
+    <thead><tr><th style="width: 34%;">Comprobación</th><th style="width: 36%;">Herramienta</th><th>Resultado (13/11/2026)</th></tr></thead>
+    <tr><td>Pruebas automáticas de la API</td><td>Pest 4 (SQLite en memoria)</td><td class="estado-ok">496 / 496 correctas</td></tr>
+    <tr><td>Las mismas pruebas sobre el motor de producción</td><td>Pest 4 contra MariaDB 11.4</td><td class="estado-ok">496 / 496 correctas</td></tr>
+    <tr><td>Análisis estático</td><td>PHPStan / Larastan, nivel 7</td><td class="estado-ok">0 errores</td></tr>
+    <tr><td>Formato del código</td><td>Laravel Pint</td><td class="estado-ok">Correcto</td></tr>
+    <tr><td>Tipos de la aplicación web</td><td>vue-tsc</td><td class="estado-ok">0 errores</td></tr>
+    <tr><td>Compilación de producción</td><td>nuxt generate + CSP</td><td class="estado-ok">Correcta</td></tr>
+</table>
+
+<h2>Qué cubren las pruebas</h2>
+<table>
+    <thead><tr><th style="width: 30%;">Área</th><th>Comprobaciones principales</th></tr></thead>
+    <tr><td>Autenticación</td><td>Inicio y cierre de sesión, usuarios inactivos, recuperación y cambio de contraseña, reglas de contraseña, límites de intentos.</td></tr>
+    <tr><td>Autorización</td><td>Para cada recurso, qué puede hacer cada rol y dentro de qué departamentos; campos prohibidos (422).</td></tr>
+    <tr><td>Matrices y riesgos</td><td>Ciclo de vida, inmutabilidad, una sola vigente, clonado, cálculo y ajuste del nivel, matriz de calor con los casos reales de los Excel.</td></tr>
+    <tr><td>Seguimiento</td><td>Solo en vigentes, anulación y restauración del estado, tipos y tamaños de evidencia, descarga protegida.</td></tr>
+    <tr><td>Reportes y exportación</td><td>Conteos del dashboard, filtros, atrasos, comparación, contenido del PDF y del Excel, protección contra inyección de fórmulas.</td></tr>
+    <tr><td>Importación</td><td>Lectura de los Excel institucionales, errores y avisos, transacción completa, comando de consola.</td></tr>
+    <tr><td>Auditoría e historial</td><td>Registro de cada operación con su área, inmutabilidad, datos sensibles excluidos, alcance del historial, migración de registros antiguos.</td></tr>
+    <tr><td>Integración</td><td>Una prueba de punta a punta recorre con los cinco roles la ampliación de noviembre junto a los flujos anteriores.</td></tr>
+    <tr><td>Infraestructura</td><td>Esquema de producción, CORS, idioma, límites de peticiones.</td></tr>
+</table>
+<p>El código de pruebas suma unas 5 200 líneas, frente a unas 7 400 del código de la API. Las pruebas son la red de seguridad para cualquier cambio futuro: toda funcionalidad nueva debe incorporar las suyas. Una observación menor sobre la ejecución en paralelo figura en la sección 15.</p>
+
+<!-- ======================= 13 ======================= -->
+<h1>13. Despliegue, operación y respaldo</h1>
+
+<h2>Servicios</h2>
+<table>
+    <thead><tr><th style="width: 16%;">Servicio</th><th style="width: 30%;">Imagen</th><th>Función</th></tr></thead>
+    <tr><td><code>web</code></td><td>Nginx 1.28 + aplicación compilada</td><td>Único servicio expuesto; sirve la SPA y hace de proxy a la API.</td></tr>
+    <tr><td><code>app</code></td><td>PHP 8.3-FPM con pdo_mysql, gd, intl, zip, bcmath y opcache</td><td>API Laravel; al arrancar genera las cachés de configuración y rutas. No migra automáticamente.</td></tr>
+    <tr><td><code>worker</code></td><td>La misma imagen de la API</td><td>Cola de trabajos para tareas en segundo plano (preparada; hoy ninguna funcionalidad encola trabajos).</td></tr>
+    <tr><td><code>db</code></td><td>MariaDB 11.4</td><td>Base de datos, sin puerto público.</td></tr>
+</table>
+<p>Los volúmenes <code>storage</code> (evidencias y registros) y <code>db</code> (datos) sobreviven a las actualizaciones y a <code>docker compose down</code>.</p>
+
+<h2>Instalación y actualización</h2>
+<ol>
+    <li>Clonar los dos repositorios uno al lado del otro y copiar la plantilla de configuración (<code>docker/produccion.env</code>, que no se versiona).</li>
+    <li>Colocar el certificado HTTPS institucional.</li>
+    <li>Construir las imágenes, generar la clave de la aplicación y arrancar.</li>
+    <li>Crear las tablas y los catálogos (<code>migrate</code> y <code>db:seed</code>, seguros de repetir) y el primer Administrador con <code>usuarios:crear-administrador</code>, que pide la contraseña sin mostrarla.</li>
+</ol>
+<p>Para actualizar: obtener el código, reconstruir las imágenes, recrear los servicios y aplicar las migraciones nuevas. Nginx vuelve a resolver la dirección de la API cada 10 segundos, de modo que recrearla no deja el servidor apuntando a un contenedor inexistente.</p>
+
+<h2>Respaldo</h2>
+<p>Hay que respaldar dos cosas: <strong>la base de datos</strong> (volcado con <code>mariadb-dump --single-transaction</code>) y <strong>las evidencias</strong> del volumen <code>storage</code>. Los comandos están documentados en <code>docs/despliegue.md</code>; la periodicidad y el destino de las copias se definen con TI del DRO.</p>
+
+<h2>Operación</h2>
+<ul>
+    <li>Registros por la salida estándar de los contenedores (<code>docker compose logs</code>), nivel <code>warning</code> en producción.</li>
+    <li>Límites de PHP y Nginx ajustados para 5 evidencias de 10 MB por seguimiento.</li>
+    <li>Configuración de producción: sesión cifrada, cookie segura, bcrypt con 12 rondas, correo por el SMTP institucional.</li>
+</ul>
+
+<h2>Reglas para cambios en la base de datos</h2>
+<ul>
+    <li>Migraciones siempre <strong>incrementales y compatibles</strong> con los datos existentes; nunca se modifica una migración ya aplicada.</li>
+    <li><strong>Respaldo antes de migrar.</strong> Las migraciones que mueven datos se escriben de forma autocontenida, por lotes y sin sobrescribir valores existentes.</li>
+    <li>Toda migración se prueba antes sobre una copia de la base y, para producción, sobre MariaDB.</li>
+</ul>
+
+<!-- ======================= 14 ======================= -->
+<h1>14. Ampliación de noviembre de 2026</h1>
+
+<p>Después de la entrega inicial, el sistema se amplió con cinco funcionalidades. Se siguió una metodología por fases: diagnóstico sin cambios, una fase por funcionalidad, verificación del responsable antes de continuar e integración final. Se aplicaron restricciones explícitas: no borrar datos, migraciones incrementales, no cambiar los permisos de los roles existentes y no agregar dependencias innecesarias.</p>
+
+<table>
+    <thead><tr><th style="width: 22%;">Funcionalidad</th><th>Implementación</th></tr></thead>
+    <tr><td><strong>Matrices creadas por el encargado</strong></td><td>El Encargado de Departamento crea procesos en sus departamentos, opcionalmente con la primera edición en la misma transacción. Se registra el creador (<code>procesos.creado_por_id</code>) y solo él (o el Administrador) puede editar o desactivar ese proceso.</td></tr>
+    <tr><td><strong>Historial de movimientos</strong></td><td>La tabla de auditoría se amplió con departamento, proceso y edición. Nueva pantalla para el Administrador y los Encargados, con filtros y el detalle de los valores. Los registros antiguos se completaron con una migración.</td></tr>
+    <tr><td><strong>Mi perfil</strong></td><td>Información personal e institucional y «Seguridad de la cuenta» con el cambio de contraseña, accesible arriba a la derecha. El usuario solo puede cambiar su nombre; el resto lo gestiona el Administrador.</td></tr>
+    <tr><td><strong>Ayuda y recorrido guiado</strong></td><td>Recorrido por rol con driver.js; invitación en el primer ingreso; estado guardado en el servidor; pantalla Ayuda con guía rápida y opción de repetir el recorrido.</td></tr>
+    <tr><td><strong>Documentación técnica</strong></td><td><code>docs/technical/DOCUMENTACION_TECNICA.md</code> y este informe. Manual de usuario actualizado a la versión 1.1.</td></tr>
+</table>
+
+<h2>Cambios en la base de datos</h2>
+<table>
+    <thead><tr><th style="width: 46%;">Migración</th><th>Cambio</th></tr></thead>
+    <tr><td><code>add_creado_por_id_to_procesos_table</code></td><td>Columna opcional con el creador del proceso.</td></tr>
+    <tr><td><code>add_area_to_auditoria_table</code></td><td>Departamento, proceso y edición afectados, con índice para las consultas por área.</td></tr>
+    <tr><td><code>backfill_area_in_auditoria_table</code></td><td>Completa el área de los registros anteriores; no modifica ningún otro dato.</td></tr>
+    <tr><td><code>add_tour_to_users_table</code></td><td>Estado y fecha del recorrido guiado.</td></tr>
+</table>
+<p>Las cuatro migraciones son aditivas: los datos existentes no cambian. Antes de aplicarlas se respaldó la base, se probaron sobre una copia y se comparó el contenido antes y después. También se validaron sobre MariaDB.</p>
+
+<p><strong>Mejoras de seguridad incluidas:</strong> las rutas de contraseña también rechazan a usuarios desactivados; el estado del recorrido de un usuario solo lo ve ese usuario; y el historial de movimientos no expone direcciones IP ni datos del navegador.</p>
+
+<!-- ======================= 15 ======================= -->
+<h1>15. Estado del proyecto y recomendaciones</h1>
+
+<h2>Estado</h2>
+<p>El sistema cumple los requisitos funcionales y no funcionales, incluye la ampliación de noviembre de 2026 y supera todas las comprobaciones automáticas. Están entregados el diagrama entidad-relación, la API documentada, la aplicación web, el importador con los datos históricos validados y el manual de usuario.</p>
+
+<h2>Pendientes</h2>
+<table>
+    <thead><tr><th style="width: 34%;">Asunto</th><th>Acción</th></tr></thead>
+    <tr><td>Datos de Servicios Empresariales</td><td>El departamento debe completar la plantilla entregada; después se importa con el procedimiento habitual.</td></tr>
+    <tr><td>Nombres de las escalas de probabilidad e impacto</td><td>Validar con INFOTEP (los Excel solo usan los valores 1–4). Se cambian desde Catálogos, sin código.</td></tr>
+    <tr><td>Proxy institucional</td><td>Si la institución termina HTTPS en un proxy propio, configurar los proxies de confianza de Laravel.</td></tr>
+    <tr><td>Programación de respaldos</td><td>Definir con TI del DRO la frecuencia, el destino y las pruebas de restauración.</td></tr>
+    <tr><td>Pruebas en paralelo</td><td>Con <code>--parallel</code>, algunas pruebas de importación fallan porque comparten archivos temporales (en ejecución normal pasan todas). Separar esos archivos.</td></tr>
+</table>
+
+<h2>Recomendaciones</h2>
+<ul>
+    <li><strong>Permisos de base de datos:</strong> quitar al usuario de la aplicación los permisos <code>UPDATE</code> y <code>DELETE</code> sobre la tabla de auditoría.</li>
+    <li><strong>Prueba piloto con usuarios reales</strong> de cada rol antes de retirar los Excel, apoyada en el recorrido guiado y el manual.</li>
+    <li><strong>Mantenimiento de dependencias:</strong> revisar <code>composer audit</code> y <code>npm audit</code> en cada actualización, y actualizar Nuxt cuando haya correcciones para los avisos de las herramientas de compilación.</li>
+    <li><strong>Fase 2 opcional</strong> prevista en los requisitos: notificaciones por correo cuando un riesgo pase a Alto o Crítico o venza un tratamiento. La cola de trabajos ya está desplegada para ello.</li>
+    <li><strong>Conservar la disciplina de pruebas:</strong> ejecutar las seis comprobaciones de la sección 12 antes de cada despliegue.</li>
+</ul>
+
+<!-- ======================= 16 ======================= -->
+<h1>16. Anexos: documentación de referencia y comandos</h1>
+
+<h2>Documentación del repositorio</h2>
+<table>
+    <thead><tr><th style="width: 42%;">Documento</th><th>Contenido</th></tr></thead>
+    <tr><td><code>docs/technical/DOCUMENTACION_TECNICA.md</code></td><td>Guía técnica para desarrolladores: punto de entrada a toda la documentación.</td></tr>
+    <tr><td><code>docs/erd.md</code></td><td>Diagrama entidad-relación y descripción de cada tabla.</td></tr>
+    <tr><td><code>docs/api.md</code> y <code>docs/api/</code></td><td>Endpoints, colección de Postman y ejemplos.</td></tr>
+    <tr><td><code>docs/modelo-organizativo.md</code></td><td>Departamentos, procesos y catálogos.</td></tr>
+    <tr><td><code>docs/reglas-nivel-riesgo.md</code></td><td>Justificación de la matriz de calor.</td></tr>
+    <tr><td><code>docs/matrices-y-ediciones.md</code>, <code>docs/riesgos.md</code></td><td>Ciclo de vida de las ediciones y reglas de los riesgos.</td></tr>
+    <tr><td><code>docs/seguimiento-y-evidencias.md</code></td><td>Seguimiento, anulación y almacenamiento de evidencias.</td></tr>
+    <tr><td><code>docs/reportes.md</code></td><td>Dashboard, filtros, comparación y exportación.</td></tr>
+    <tr><td><code>docs/importacion.md</code></td><td>Importación desde Excel.</td></tr>
+    <tr><td><code>docs/auditoria.md</code></td><td>Auditoría e historial de movimientos.</td></tr>
+    <tr><td><code>docs/despliegue.md</code></td><td>Instalación, actualización, respaldo y seguridad.</td></tr>
+    <tr><td><code>docs/manual/</code></td><td>Manual de usuario (versión 1.1).</td></tr>
+</table>
+
+<h2>Comandos útiles</h2>
+<table>
+    <thead><tr><th style="width: 52%;">Comando</th><th>Para qué</th></tr></thead>
+    <tr><td><code>php artisan usuarios:crear-administrador</code></td><td>Crear un Administrador.</td></tr>
+    <tr><td><code>php artisan matrices:importar archivo.xlsx --proceso=N --usuario=correo</code></td><td>Vista previa de una importación (añadir <code>--confirmar</code> para importar).</td></tr>
+    <tr><td><code>php artisan migrate --force</code></td><td>Aplicar migraciones nuevas en producción (tras respaldar).</td></tr>
+    <tr><td><code>php artisan db:seed --force</code></td><td>Crear los catálogos que falten; no sobrescribe los cambios del Administrador.</td></tr>
+    <tr><td><code>php artisan route:list --path=api</code></td><td>Listar las rutas de la API.</td></tr>
+    <tr><td><code>php artisan test</code></td><td>Ejecutar las pruebas.</td></tr>
+    <tr><td><code>vendor/bin/phpstan analyse --memory-limit=1G</code></td><td>Análisis estático.</td></tr>
+    <tr><td><code>npm run typecheck</code> / <code>npm run generate</code></td><td>Verificar tipos y compilar la aplicación web.</td></tr>
+    <tr><td><code>php docs/technical/generar-informe.php</code></td><td>Regenerar este informe en PDF.</td></tr>
+    <tr><td><code>php docs/manual/generar-manual.php</code></td><td>Regenerar el manual de usuario en PDF.</td></tr>
+</table>
+
+<p style="margin-top: 16px;">Este informe se genera a partir de <code>docs/technical/informe-tecnico.html</code>; para actualizarlo, edite ese archivo y vuelva a ejecutar el generador.</p>
+
+</body>
+</html>

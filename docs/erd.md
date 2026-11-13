@@ -17,7 +17,8 @@ niveles_riesgo ──< matriz_calor_celdas      escala_niveles      auditoria (r
 
 - Un **departamento** tiene **procesos**; cada proceso tiene **ediciones de su
   matriz** (borrador → vigente → archivada), encadenadas por
-  `edicion_anterior_id`.
+  `edicion_anterior_id`. `procesos.creado_por_id` (opcional) indica qué
+  usuario creó el proceso: el Encargado de Departamento edita los suyos.
 - Cada edición tiene **riesgos** (filas del formulario RT-01-NI-ONA-156). Al
   crear una edición nueva, cada riesgo copiado apunta a su original
   (`riesgo_origen_id`): así se comparan ediciones.
@@ -43,6 +44,8 @@ erDiagram
         bigint id PK
         bigint role_id FK "nullable"
         tinyint activo
+        varchar tour_estado "nullable"
+        timestamp tour_actualizado_at "nullable"
         varchar name
         varchar email UK
         timestamp email_verified_at "nullable"
@@ -70,6 +73,7 @@ erDiagram
     procesos {
         bigint id PK
         bigint departamento_id FK,UK
+        bigint creado_por_id FK "nullable"
         varchar nombre
         varchar slug UK
         text descripcion "nullable"
@@ -191,6 +195,9 @@ erDiagram
         varchar evento
         varchar entidad "nullable"
         bigint entidad_id "nullable"
+        bigint departamento_id FK "nullable"
+        bigint proceso_id FK "nullable"
+        bigint matriz_id FK "nullable"
         longtext valores_anteriores "nullable"
         longtext valores_nuevos "nullable"
         varchar descripcion "nullable"
@@ -202,6 +209,7 @@ erDiagram
     departamentos ||--o{ user_departamento : "departamento_id"
     users ||--o{ user_departamento : "user_id"
     departamentos ||--o{ procesos : "departamento_id"
+    users |o--o{ procesos : "creado_por_id"
     matrices o|--o{ matrices : "edicion_anterior_id"
     procesos ||--o{ matrices : "proceso_id"
     matrices ||--o{ riesgos : "matriz_id"
@@ -217,6 +225,9 @@ erDiagram
     users ||--o{ seguimientos : "user_id"
     seguimientos ||--o{ evidencias : "seguimiento_id"
     users o|--o{ auditoria : "user_id"
+    departamentos o|--o{ auditoria : "departamento_id"
+    procesos o|--o{ auditoria : "proceso_id"
+    matrices o|--o{ auditoria : "matriz_id"
 ```
 
 Claves: **PK** clave primaria · **FK** clave foránea · **UK** valor único
@@ -241,7 +252,7 @@ Claves: **PK** clave primaria · **FK** clave foránea · **UK** valor único
 | `matriz_calor_celdas` | Matriz de calor 4×4: qué nivel corresponde a cada Probabilidad × Impacto. | `nivel_riesgo_id` → `niveles_riesgo` | (probabilidad, impacto) |
 | `seguimientos` | Histórico de seguimiento de un riesgo (no se edita; un error se anula con motivo). | `anulado_por_id` → `users`, `riesgo_id` → `riesgos`, `user_id` → `users` | — |
 | `evidencias` | Archivos adjuntos a un seguimiento (disco privado, con hash SHA-256). | `seguimiento_id` → `seguimientos` | (ruta) |
-| `auditoria` | Registro de cambios: quién, qué, cuándo, valores anteriores y nuevos (RF-9). | `user_id` → `users` | — |
+| `auditoria` | Registro de cambios: quién, qué, cuándo, valores anteriores y nuevos (RF-9). Área afectada para el historial de movimientos. | `user_id` → `users`; `departamento_id` → `departamentos`; `proceso_id` → `procesos`; `matriz_id` → `matrices` (opcionales) | — |
 
 ## Reglas de integridad e historial
 
@@ -258,7 +269,9 @@ Claves: **PK** clave primaria · **FK** clave foránea · **UK** valor único
   por seguimiento).
 - **Auditoría**: `auditoria.entidad` + `entidad_id` identifican el registro
   afectado de cualquier tabla (sin clave foránea a propósito: el registro de
-  auditoría sobrevive aunque el dato cambie).
+  auditoría sobrevive aunque el dato cambie). `departamento_id`, `proceso_id`
+  y `matriz_id` sí tienen clave foránea: guardan el área afectada para el
+  historial de movimientos (esas tablas nunca se borran físicamente).
 
 ## Tablas de infraestructura (no aparecen en el diagrama)
 

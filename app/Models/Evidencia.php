@@ -40,6 +40,16 @@ class Evidencia extends Model
         static::deleting(fn (Evidencia $evidencia) => throw new LogicException("La evidencia {$evidencia->id} es histórica y no se elimina."));
     }
 
+    /**
+     * Área afectada, para el historial de movimientos (ver Auditable).
+     *
+     * @return array{departamento_id?: int|null, proceso_id?: int|null, matriz_id?: int|null}
+     */
+    public function contextoAuditoria(): array
+    {
+        return $this->seguimiento?->contextoAuditoria() ?? [];
+    }
+
     /** @return BelongsTo<Seguimiento, $this> */
     public function seguimiento(): BelongsTo
     {

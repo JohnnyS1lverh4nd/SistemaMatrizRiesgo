@@ -76,6 +76,17 @@ class Seguimiento extends Model
         return $evento === 'actualizado' && array_key_exists('anulado_at', $cambios) ? 'anulado' : $evento;
     }
 
+    /**
+     * Área afectada, para el historial de movimientos (ver Auditable). El riesgo
+     * puede estar eliminado lógicamente: también se busca ahí.
+     *
+     * @return array{departamento_id?: int|null, proceso_id?: int|null, matriz_id?: int|null}
+     */
+    public function contextoAuditoria(): array
+    {
+        return ($this->riesgo ?? Riesgo::withTrashed()->find($this->riesgo_id))?->contextoAuditoria() ?? [];
+    }
+
     /** @return BelongsTo<Riesgo, $this> */
     public function riesgo(): BelongsTo
     {

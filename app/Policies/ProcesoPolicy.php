@@ -2,12 +2,18 @@
 
 namespace App\Policies;
 
+use App\Models\Departamento;
 use App\Models\Proceso;
 use App\Models\User;
 
 /**
  * Un proceso se ve si se puede ver su departamento (DepartamentoPolicy::view):
- * la regla de alcance vive en un solo sitio. Alta y edición: solo Administrador.
+ * la regla de alcance vive en un solo sitio.
+ *
+ * Alta (= nueva matriz, RF-2): Administrador en todos los departamentos;
+ * Encargado de Departamento en los suyos. Edición: Administrador en todos;
+ * el Encargado solo en los procesos que él creó y mientras siga asignado
+ * al departamento.
  */
 class ProcesoPolicy
 {
@@ -21,13 +27,14 @@ class ProcesoPolicy
         return $user->can('view', $proceso->departamento);
     }
 
-    public function create(User $user): bool
+    public function create(User $user, Departamento $departamento): bool
     {
-        return false;
+        return $user->puedeGestionarMatricesDe($departamento);
     }
 
     public function update(User $user, Proceso $proceso): bool
     {
-        return false;
+        return $proceso->creado_por_id === $user->id
+            && $user->puedeGestionarMatricesDe($proceso->departamento);
     }
 }

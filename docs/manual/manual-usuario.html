@@ -58,7 +58,7 @@
     <div class="datos">
         Instituto Nacional de Formación Técnico Profesional (INFOTEP)<br>
         Formulario de referencia RT-01-NI-ONA-156<br>
-        Versión 1.0 · {{FECHA}}
+        Versión 1.1 · {{FECHA}}
     </div>
 </div>
 
@@ -67,10 +67,10 @@
 <h1>Contenido</h1>
 <table class="toc">
     <tr><td class="num">1.</td><td>Introducción y conceptos</td><td class="pag">{{PAG_1}}</td></tr>
-    <tr><td class="num">2.</td><td>Primeros pasos: entrar, la sesión y la contraseña</td><td class="pag">{{PAG_2}}</td></tr>
+    <tr><td class="num">2.</td><td>Primeros pasos: entrar, la sesión, su perfil y la ayuda</td><td class="pag">{{PAG_2}}</td></tr>
     <tr><td class="num">3.</td><td>Qué puede hacer cada rol</td><td class="pag">{{PAG_3}}</td></tr>
-    <tr><td class="num">4.</td><td>Consultar: Inicio, matrices, reportes y comparaciones</td><td class="pag">{{PAG_4}}</td></tr>
-    <tr><td class="num">5.</td><td>Encargado de Departamento: ediciones y riesgos</td><td class="pag">{{PAG_5}}</td></tr>
+    <tr><td class="num">4.</td><td>Consultar: Inicio, matrices, reportes, comparaciones e historial</td><td class="pag">{{PAG_4}}</td></tr>
+    <tr><td class="num">5.</td><td>Encargado de Departamento: matrices, ediciones y riesgos</td><td class="pag">{{PAG_5}}</td></tr>
     <tr><td class="num">6.</td><td>Seguimiento y evidencias</td><td class="pag">{{PAG_6}}</td></tr>
     <tr><td class="num">7.</td><td>Administrador</td><td class="pag">{{PAG_7}}</td></tr>
     <tr><td class="num">8.</td><td>Preguntas frecuentes y mensajes del sistema</td><td class="pag">{{PAG_8}}</td></tr>
@@ -123,7 +123,7 @@
 <p>Esta es la tabla inicial. El Administrador puede cambiarla en <span class="pantalla">Catálogos → Matriz de calor</span>. Si para un riesgo concreto el nivel calculado no refleja la realidad, el encargado puede <strong>ajustarlo manualmente con una justificación</strong>; el sistema conserva los dos valores (calculado y ajustado).</p>
 
 <!-- ======================= 2 ======================= -->
-<h1>2. Primeros pasos: entrar, la sesión y la contraseña</h1>
+<h1>2. Primeros pasos: entrar, la sesión, su perfil y la ayuda</h1>
 
 <h2>Entrar al sistema</h2>
 <ol>
@@ -132,16 +132,19 @@
     <li>Pulse <span class="boton">Entrar</span>.</li>
 </ol>
 <p>Las cuentas las crea el Administrador: no hay registro abierto. Si escribe mal la contraseña varias veces seguidas, el sistema le pedirá esperar un minuto antes de intentarlo de nuevo.</p>
+<p>La primera vez que entre, el sistema le ofrecerá un <strong>recorrido guiado</strong> por las pantallas (ver «Ayuda y recorrido guiado» más abajo).</p>
 
 <h2>El menú</h2>
 <p>A la izquierda está el menú principal. Cada persona ve solo las opciones de su rol:</p>
 <ul>
     <li><span class="pantalla">Inicio</span>, <span class="pantalla">Matrices de riesgo</span> y <span class="pantalla">Reportes</span>: todos los roles.</li>
+    <li><span class="pantalla">Historial de movimientos</span>: Administrador, Encargado de Departamento y Encargado de Seguimiento.</li>
     <li><span class="pantalla">Departamentos</span>, <span class="pantalla">Catálogos</span> y <span class="pantalla">Usuarios</span>: Administrador.</li>
     <li><span class="pantalla">Auditoría</span>: Administrador y Auditor.</li>
-    <li><span class="pantalla">Cambiar contraseña</span> y <span class="boton">Cerrar sesión</span>: todos, al pie del menú.</li>
+    <li><span class="pantalla">Ayuda</span> y <span class="boton">Cerrar sesión</span>: todos, al pie del menú.</li>
 </ul>
 <p>El menú se puede contraer para ganar espacio. Al pie también está el interruptor <strong>Modo oscuro</strong>, que cambia los colores de la pantalla; la preferencia se recuerda en ese navegador.</p>
+<p>En la parte <strong>superior derecha</strong> de todas las pantallas está el botón <span class="boton">Perfil</span>, con sus datos y el cambio de contraseña.</p>
 
 <h2>La sesión se cierra por inactividad</h2>
 <p>Por seguridad, la sesión se cierra tras <strong>4 minutos sin actividad</strong>. Un minuto antes aparece el aviso <em>«Tu sesión está por cerrarse»</em>:</p>
@@ -160,9 +163,26 @@
 </ol>
 <p>Por seguridad, el sistema muestra el mismo mensaje exista o no la cuenta. Si no recibe el correo, revise la carpeta de correo no deseado o consulte al Administrador.</p>
 
+<h2>Mi perfil</h2>
+<p>Pulse <span class="boton">Perfil</span>, arriba a la derecha. La pantalla <span class="pantalla">Mi perfil</span> tiene tres partes:</p>
+<ul>
+    <li><strong>Información personal:</strong> su <strong>Nombre completo</strong>, que puede corregir con <span class="boton">Guardar nombre</span>, y su <strong>Correo electrónico</strong>, que es su usuario de acceso y solo lo cambia el Administrador.</li>
+    <li><strong>Información institucional:</strong> su <strong>Rol</strong>, el <strong>Estado de la cuenta</strong>, los <strong>Departamentos asignados</strong> y la fecha en que se creó la cuenta. Estos datos los gestiona el Administrador; si alguno no es correcto, consúltelo con él.</li>
+    <li><strong>Seguridad de la cuenta:</strong> el cambio de contraseña.</li>
+</ul>
+
 <h2>Cambiar la contraseña</h2>
-<p>En el menú, <span class="pantalla">Cambiar contraseña</span>: escriba la <strong>Contraseña actual</strong>, la <strong>Nueva contraseña</strong> y su confirmación.</p>
+<p>En <span class="pantalla">Perfil → Seguridad de la cuenta</span>: escriba la <strong>Contraseña actual</strong>, la <strong>Nueva contraseña</strong> y <strong>Confirmar nueva contraseña</strong>, y pulse <span class="boton">Cambiar contraseña</span>.</p>
 <div class="nota"><strong>Requisitos de la contraseña:</strong> al menos <strong>8 caracteres</strong>, con mayúsculas, minúsculas, números y símbolos (por ejemplo <em>Riesgo-Dro-26</em>). Tampoco se aceptan contraseñas que hayan aparecido en filtraciones de datos conocidas; si el sistema la rechaza por ese motivo, elija otra.</div>
+
+<h2>Ayuda y recorrido guiado</h2>
+<p>El <strong>recorrido guiado</strong> señala, paso a paso, dónde está cada función que su rol puede usar. La primera vez que entre al sistema verá la invitación <em>«¿Le mostramos cómo usar el sistema?»</em>:</p>
+<ul>
+    <li><span class="boton">Comenzar recorrido</span> lo inicia. Avance con <span class="boton">Siguiente</span> y <span class="boton">Anterior</span>; en el último paso, <span class="boton">Finalizar</span>. Puede salir en cualquier momento con <span class="boton">Saltar recorrido</span>, la ✕ o la tecla Esc.</li>
+    <li><span class="boton">Ahora no</span> no lo inicia y no se lo vuelve a ofrecer.</li>
+    <li>Si cierra la invitación con la ✕, se la ofrecerá de nuevo la próxima vez que entre.</li>
+</ul>
+<p>En <span class="pantalla">Ayuda</span> (al pie del menú) puede repetirlo cuando quiera con <span class="boton">Volver a iniciar recorrido guiado</span>. Ahí también está la <strong>Guía rápida</strong>: una explicación breve de cada pantalla que su rol puede usar, con un enlace para ir a ella.</p>
 
 <!-- ======================= 3 ======================= -->
 <h1>3. Qué puede hacer cada rol</h1>
@@ -180,17 +200,21 @@
     </tr>
     <tr><td>Ver Inicio, matrices y reportes</td><td class="si">Todos</td><td class="si">Los suyos</td><td class="si">Los suyos</td><td class="si">Todos</td><td class="si">Todos</td></tr>
     <tr><td>Comparar ediciones y exportar a PDF o Excel</td><td class="si">Sí</td><td class="si">Sí</td><td class="si">Sí</td><td class="si">Sí</td><td class="si">Sí</td></tr>
+    <tr><td>Crear una matriz nueva (proceso)</td><td class="si">Sí</td><td class="si">Sí</td><td class="no">No</td><td class="no">No</td><td class="no">No</td></tr>
+    <tr><td>Editar, desactivar o reactivar una matriz (proceso)</td><td class="si">Sí</td><td class="si">Las que creó</td><td class="no">No</td><td class="no">No</td><td class="no">No</td></tr>
     <tr><td>Crear ediciones, registrar riesgos, publicar y archivar</td><td class="si">Sí</td><td class="si">Sí</td><td class="no">No</td><td class="no">No</td><td class="no">No</td></tr>
     <tr><td>Registrar seguimientos y evidencias</td><td class="si">Sí</td><td class="si">Sí</td><td class="si">Sí</td><td class="no">No</td><td class="no">No</td></tr>
+    <tr><td>Ver el historial de movimientos</td><td class="si">Todos</td><td class="si">Los suyos</td><td class="si">Los suyos</td><td class="no">No</td><td class="no">No</td></tr>
     <tr><td>Ver la auditoría (registro de cambios)</td><td class="si">Sí</td><td class="no">No</td><td class="no">No</td><td class="si">Sí</td><td class="no">No</td></tr>
-    <tr><td>Usuarios, departamentos, procesos y catálogos</td><td class="si">Sí</td><td class="no">No</td><td class="no">No</td><td class="no">No</td><td class="no">No</td></tr>
+    <tr><td>Usuarios, departamentos y catálogos</td><td class="si">Sí</td><td class="no">No</td><td class="no">No</td><td class="no">No</td><td class="no">No</td></tr>
     <tr><td>Importar matrices desde Excel</td><td class="si">Sí</td><td class="no">No</td><td class="no">No</td><td class="no">No</td><td class="no">No</td></tr>
+    <tr><td>Mi perfil, cambiar su contraseña y Ayuda</td><td class="si">Sí</td><td class="si">Sí</td><td class="si">Sí</td><td class="si">Sí</td><td class="si">Sí</td></tr>
 </table>
 
-<p>En cada pantalla, el sistema muestra solo los botones que su rol permite usar.</p>
+<p>En cada pantalla, el sistema muestra solo los botones que su rol permite usar. El recorrido guiado y la Guía rápida de Ayuda también se adaptan a su rol.</p>
 
 <!-- ======================= 4 ======================= -->
-<h1>4. Consultar: Inicio, matrices, reportes y comparaciones</h1>
+<h1>4. Consultar: Inicio, matrices, reportes, comparaciones e historial</h1>
 
 <h2>Inicio</h2>
 <p>Resume los riesgos de las <strong>ediciones vigentes</strong> de los departamentos que usted puede ver. Con el selector <strong>Departamento</strong> puede limitarlo a uno solo.</p>
@@ -201,7 +225,7 @@
     <li><strong>Estado del tratamiento:</strong> pendientes, en progreso y cumplidos.</li>
     <li><strong>Por departamento:</strong> resumen de cada departamento y sus procesos.</li>
 </ul>
-<p>El botón <span class="boton">Reporte de riesgos</span> abre el listado detallado.</p>
+<p>Para ver el listado detallado de los riesgos, use <span class="pantalla">Reportes</span> en el menú.</p>
 
 <h2>Matrices de riesgo</h2>
 <p>Muestra sus departamentos con sus procesos. Al abrir un proceso se ve la lista de sus <strong>ediciones</strong> con su estado (borrador, vigente o archivada) y la edición de la que se creó cada una.</p>
@@ -233,10 +257,31 @@
     <li>los <strong>cambios de nivel</strong>, indicando si el riesgo sube o baja.</li>
 </ul>
 
+<h2>Historial de movimientos</h2>
+<p>Disponible para el Administrador (todos los departamentos) y los Encargados de Departamento y de Seguimiento (solo sus departamentos). En <span class="pantalla">Historial de movimientos</span> se ve quién hizo cada cambio en las matrices de su área y cuándo: matrices y ediciones creadas, riesgos registrados o modificados, publicaciones, seguimientos, exportaciones e importaciones.</p>
+<ul>
+    <li>Filtros: <strong>Fecha inicial</strong> y <strong>Fecha final</strong>, <strong>Usuario</strong>, <strong>Tipo de operación</strong>, <strong>Departamento</strong> (si tiene varios), <strong>Proceso (matriz)</strong>, <strong>Edición</strong> y <strong>Registro afectado</strong>. Pulse <span class="boton">Aplicar filtros</span>; <span class="boton">Limpiar</span> los quita.</li>
+    <li><span class="boton">Ver detalle</span> muestra el movimiento completo, con los <strong>valores anteriores y los nuevos</strong> de cada campo que cambió.</li>
+</ul>
+<p>El historial es solo de consulta: sus registros no se pueden modificar ni borrar.</p>
+
 <!-- ======================= 5 ======================= -->
-<h1>5. Encargado de Departamento: ediciones y riesgos</h1>
+<h1>5. Encargado de Departamento: matrices, ediciones y riesgos</h1>
 
 <p>Esta sección también aplica al Administrador, que puede hacer lo mismo en todos los departamentos.</p>
+
+<h2>Crear una matriz nueva</h2>
+<p>Cada proceso tiene su matriz. Para registrar la matriz de un proceso que todavía no está en el sistema:</p>
+<ol>
+    <li>En <span class="pantalla">Matrices de riesgo</span>, en el recuadro del departamento, pulse <span class="boton">Nueva matriz</span>. El botón aparece solo en los departamentos que tiene asignados.</li>
+    <li>Escriba el nombre del <strong>Proceso</strong> y, si quiere, una <strong>Descripción</strong>. El nombre no puede repetirse dentro del departamento.</li>
+    <li>Opcional: marque <strong>Crear también la primera edición (borrador)</strong> e indique el <strong>Nombre de la edición</strong> y la <strong>Fecha de revisión</strong>. Así puede empezar a registrar riesgos enseguida.</li>
+    <li>Pulse <span class="boton">Crear matriz</span>.</li>
+</ol>
+<p>La matriz queda en ese departamento y a su nombre en el historial de movimientos.</p>
+
+<h3>Editar, desactivar o reactivar una matriz</h3>
+<p>Dentro del proceso, <span class="boton">Editar proceso</span> cambia el nombre o la descripción y <span class="boton">Desactivar proceso</span> lo retira del Inicio y de los reportes sin borrar sus ediciones (<span class="boton">Reactivar proceso</span> lo devuelve). El Encargado de Departamento puede hacerlo <strong>solo con las matrices que él creó</strong>; las demás las gestiona el Administrador. Un proceso inactivo no admite ediciones nuevas.</p>
 
 <h2>Crear una edición</h2>
 <p>En <span class="pantalla">Matrices de riesgo</span>, abra el proceso. Hay dos formas:</p>
@@ -311,6 +356,7 @@
 <h2>Departamentos y procesos</h2>
 <p>En <span class="pantalla">Departamentos</span>: <span class="boton">Nuevo departamento</span>, <span class="boton">Editar</span> y <span class="boton">Desactivar</span>. Con <span class="boton">Procesos</span> se gestionan los procesos del departamento (<span class="boton">Nuevo proceso</span>, <span class="boton">Editar</span>, <span class="boton">Desactivar</span>).</p>
 <p>Nada se borra: un departamento o proceso <strong>desactivado</strong> deja de contar en el Inicio y en los reportes, pero sus ediciones se conservan. En un departamento inactivo no se pueden crear procesos.</p>
+<p>Los Encargados de Departamento también pueden crear procesos en sus departamentos con <span class="boton">Nueva matriz</span> (sección 5). El Administrador puede editar o desactivar cualquier proceso, también los creados por un encargado.</p>
 
 <h2>Catálogos</h2>
 <table>
@@ -342,6 +388,7 @@
 
 <h2>Auditoría</h2>
 <p>En <span class="pantalla">Auditoría</span> (Administrador y Auditor) está el registro de todos los cambios: quién, qué, cuándo y los valores anteriores y nuevos. Incluye inicios y cierres de sesión, publicaciones, exportaciones e importaciones. Se puede filtrar por <strong>Registro</strong>, <strong>Operación</strong> y fechas (<strong>Desde</strong> / <strong>Hasta</strong>). Los registros de auditoría no se pueden modificar.</p>
+<p>La diferencia con el <span class="pantalla">Historial de movimientos</span> (sección 4): la Auditoría incluye todo el sistema (usuarios, catálogos, inicios de sesión); el historial muestra solo los cambios en las matrices, por departamento.</p>
 
 <!-- ======================= 8 ======================= -->
 <h1>8. Preguntas frecuentes y mensajes del sistema</h1>
@@ -358,6 +405,11 @@
     <tr><td>La contraseña nueva no se acepta.</td><td>Debe tener al menos 8 caracteres con mayúsculas, minúsculas, números y símbolos, y no figurar en filtraciones conocidas. El mensaje bajo el campo indica qué falta.</td></tr>
     <tr><td>No llega el correo para restablecer la contraseña.</td><td>Revise el correo no deseado y que escribió bien su correo. El enlace caduca a los 60 minutos; puede pedir otro.</td></tr>
     <tr><td>Un seguimiento se registró con un error.</td><td>No se edita: anúlelo con un motivo y registre uno nuevo.</td></tr>
+    <tr><td>¿Dónde cambio mi contraseña?</td><td>En <span class="boton">Perfil</span> (arriba a la derecha) → <strong>Seguridad de la cuenta</strong>.</td></tr>
+    <tr><td>No puedo cambiar mi correo, mi rol o mis departamentos.</td><td>Los gestiona el Administrador. En su perfil solo puede corregir su nombre.</td></tr>
+    <tr><td>«Ya existe un proceso con ese nombre en este departamento.»</td><td>Esa matriz ya existe. Búsquela en <span class="pantalla">Matrices de riesgo</span> o elija otro nombre.</td></tr>
+    <tr><td>No veo «Editar proceso» en una matriz de mi departamento.</td><td>El Encargado de Departamento solo edita las matrices que él creó. Para las demás, consulte al Administrador.</td></tr>
+    <tr><td>Quiero volver a ver el recorrido guiado.</td><td>En <span class="pantalla">Ayuda</span>, pulse <span class="boton">Volver a iniciar recorrido guiado</span>.</td></tr>
 </table>
 
 <p style="margin-top: 16px;">Para dudas o problemas que no aparezcan aquí, contacte al Administrador del sistema.</p>

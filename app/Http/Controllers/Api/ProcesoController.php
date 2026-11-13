@@ -11,6 +11,7 @@ use App\Models\Proceso;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Procesos de un departamento (rutas shallow):
@@ -40,9 +41,23 @@ class ProcesoController extends Controller
         return ProcesoResource::collection($procesos);
     }
 
+    /**
+     * Nueva matriz: el proceso y, si se pide, su primera edición en borrador.
+     * Una sola transacción: o se crean los dos, o ninguno.
+     */
     public function store(StoreProcesoRequest $request, Departamento $departamento): JsonResponse
     {
-        $proceso = $departamento->procesos()->create($request->validated());
+        $proceso = DB::transaction(function () use ($request, $departamento) {
+            $proceso = $departamento->procesos()->make($request->datosProceso());
+            $proceso->creado_por_id = $request->user()->id;
+            $proceso->save();
+
+            if ($edicion = $request->edicionInicial()) {
+                $proceso->matrices()->create($edicion);
+            }
+
+            return $proceso;
+        });
 
         return (new ProcesoResource($proceso))
             ->response()

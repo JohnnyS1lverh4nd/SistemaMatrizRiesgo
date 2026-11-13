@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\EstadoTour;
 use App\Models\Concerns\Auditable;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
@@ -19,6 +20,8 @@ use Laravel\Sanctum\HasApiTokens;
  * @property int $id
  * @property int|null $role_id
  * @property bool $activo
+ * @property EstadoTour|null $tour_estado
+ * @property Carbon|null $tour_actualizado_at
  * @property string $name
  * @property string $email
  * @property Carbon|null $email_verified_at
@@ -58,6 +61,8 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'activo' => 'boolean',
+            'tour_estado' => EstadoTour::class,
+            'tour_actualizado_at' => 'datetime',
         ];
     }
 
@@ -79,7 +84,9 @@ class User extends Authenticatable
     /** @return list<string> */
     protected function camposExcluidosDeAuditoria(): array
     {
-        return ['remember_token', 'two_factor_secret', 'two_factor_recovery_codes'];
+        // El estado del recorrido guiado es una preferencia personal, no un
+        // cambio de datos institucionales.
+        return ['remember_token', 'two_factor_secret', 'two_factor_recovery_codes', 'tour_estado', 'tour_actualizado_at'];
     }
 
     /** @return BelongsTo<Role, $this> */
@@ -104,10 +111,6 @@ class User extends Authenticatable
     }
 
     /**
-     * Crear y editar matrices de un departamento: el Administrador en todos;
-     * el Encargado de Departamento solo en los suyos.
-     */
-    /**
      * Registrar seguimiento y evidencias (RF-4): el Administrador en todos;
      * los Encargados de Departamento y de Seguimiento en los suyos.
      */
@@ -120,6 +123,10 @@ class User extends Authenticatable
         };
     }
 
+    /**
+     * Crear y editar matrices de un departamento: el Administrador en todos;
+     * el Encargado de Departamento solo en los suyos.
+     */
     public function puedeGestionarMatricesDe(Departamento $departamento): bool
     {
         return match ($this->role?->slug) {

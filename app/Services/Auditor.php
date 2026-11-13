@@ -14,8 +14,12 @@ use Illuminate\Support\Str;
 class Auditor
 {
     /**
+     * $contexto: área afectada (departamento_id, proceso_id, matriz_id) para
+     * el historial de movimientos. Vacío en catálogos, usuarios y sesiones.
+     *
      * @param  array<string, mixed>|null  $antes
      * @param  array<string, mixed>|null  $despues
+     * @param  array{departamento_id?: int|null, proceso_id?: int|null, matriz_id?: int|null}  $contexto
      */
     public static function registrar(
         string $evento,
@@ -25,6 +29,7 @@ class Auditor
         ?array $despues = null,
         ?string $descripcion = null,
         ?User $usuario = null,
+        array $contexto = [],
     ): void {
         $peticion = app()->runningInConsole() && ! app()->runningUnitTests() ? null : request();
         $usuario ??= Auth::user();
@@ -34,6 +39,9 @@ class Auditor
             'evento' => $evento,
             'entidad' => $entidad,
             'entidad_id' => $entidadId,
+            'departamento_id' => $contexto['departamento_id'] ?? null,
+            'proceso_id' => $contexto['proceso_id'] ?? null,
+            'matriz_id' => $contexto['matriz_id'] ?? null,
             'valores_anteriores' => $antes,
             'valores_nuevos' => $despues,
             'descripcion' => $descripcion !== null ? Str::limit($descripcion, 497) : null,
@@ -48,8 +56,9 @@ class Auditor
      *
      * @param  array<int, int>  $antes
      * @param  array<int, int>  $despues
+     * @param  array{departamento_id?: int|null, proceso_id?: int|null, matriz_id?: int|null}  $contexto
      */
-    public static function registrarRelacion(string $entidad, int $entidadId, string $campo, array $antes, array $despues): void
+    public static function registrarRelacion(string $entidad, int $entidadId, string $campo, array $antes, array $despues, array $contexto = []): void
     {
         sort($antes);
         sort($despues);
@@ -58,6 +67,6 @@ class Auditor
             return;
         }
 
-        self::registrar('actualizado', $entidad, $entidadId, [$campo => $antes], [$campo => $despues]);
+        self::registrar('actualizado', $entidad, $entidadId, [$campo => $antes], [$campo => $despues], contexto: $contexto);
     }
 }

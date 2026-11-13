@@ -83,7 +83,7 @@ class RiesgoService
         $antes = $riesgo->factores()->pluck('factores_riesgo.id')->map(fn ($id) => (int) $id)->all();
         $riesgo->factores()->sync($factorIds);
 
-        Auditor::registrarRelacion('riesgo', $riesgo->id, 'factor_ids', $antes, array_map('intval', $factorIds));
+        Auditor::registrarRelacion('riesgo', $riesgo->id, 'factor_ids', $antes, array_map('intval', $factorIds), $riesgo->contextoAuditoria());
     }
 
     private function fijarNivelCalculado(Riesgo $riesgo): void

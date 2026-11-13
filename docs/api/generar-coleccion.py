@@ -21,7 +21,8 @@ def r(carpeta, nombre, metodo, ruta, quien, desc, **o):
 C = '1. Autenticación'
 r(C, 'Cookie CSRF', 'GET', '/sanctum/csrf-cookie', 'Público', 'Entrega la cookie XSRF-TOKEN. La colección la pide sola antes de cada petición que modifica datos.', estado=204)
 r(C, 'Iniciar sesión', 'POST', '/login', 'Público', 'Inicia sesión con correo y contraseña (cookie de sesión). 5 intentos por minuto. Credenciales erróneas: 422.', body={'email': '{{email}}', 'password': '{{password}}'}, estado=200)
-r(C, 'Usuario actual', 'GET', '/api/user', 'Cualquier usuario autenticado', 'Datos del usuario con sesión, su rol, departamentos y `meta.sesion_minutos` (inactividad permitida).', estado=200,
+r(C, 'Usuario actual', 'GET', '/api/user', 'Cualquier usuario autenticado', 'Datos del usuario con sesión (también los de Mi perfil): rol, departamentos, fecha de alta y `meta.sesion_minutos` (inactividad permitida).', estado=200,
+  guardar_js=guardar('nombre_usuario', 'pm.response.json().data.name'),
   pruebas="pm.test('Sesión iniciada', () => pm.expect(pm.response.json().data.email).to.eql(pm.collectionVariables.get('email')));")
 
 C = '2. Usuarios y roles'
@@ -40,10 +41,10 @@ r(C, 'Crear departamento', 'POST', '/api/departamentos', ADMIN, 'El `slug` se ge
 r(C, 'Ver departamento', 'GET', '/api/departamentos/{{departamento_id}}', TODOS, 'Un departamento.', estado=200)
 r(C, 'Modificar departamento', 'PUT', '/api/departamentos/{{departamento_id}}', ADMIN, 'Sin borrado: se desactiva con `activo: false`.', body={'direccion': 'Dirección de ejemplo (modificada)'}, estado=200)
 r(C, 'Listar procesos del departamento', 'GET', '/api/departamentos/{{departamento_id}}/procesos', TODOS, 'Procesos de un departamento. Filtro opcional `activo`.', estado=200)
-r(C, 'Crear proceso', 'POST', '/api/departamentos/{{departamento_id}}/procesos', ADMIN, 'Proceso nuevo en un departamento activo.', body={'nombre': 'Proceso Postman', 'descripcion': 'Proceso de ejemplo'}, estado=201, guardar_js=guardar('proceso_id', 'pm.response.json().data.id'))
+r(C, 'Crear proceso (nueva matriz)', 'POST', '/api/departamentos/{{departamento_id}}/procesos', GESTION, 'Proceso nuevo (= matriz nueva) en un departamento activo. Opcional: `edicion_inicial` {nombre, fecha_revision} crea su primera edición en borrador en la misma transacción.', body={'nombre': 'Proceso Postman', 'descripcion': 'Proceso de ejemplo'}, estado=201, guardar_js=guardar('proceso_id', 'pm.response.json().data.id'))
 r(C, 'Crear proceso para importar', 'POST', '/api/departamentos/{{departamento_id}}/procesos', ADMIN, 'Segundo proceso, sin ediciones, para el ejemplo de importación.', body={'nombre': 'Proceso Postman importado'}, estado=201, guardar_js=guardar('proceso_importacion_id', 'pm.response.json().data.id'))
-r(C, 'Ver proceso', 'GET', '/api/procesos/{{proceso_id}}', TODOS, 'Un proceso; `permisos` indica qué puede hacer el usuario (crear ediciones, importar).', estado=200)
-r(C, 'Modificar proceso', 'PUT', '/api/procesos/{{proceso_id}}', ADMIN, 'Sin borrado: se desactiva con `activo: false` (deja de contar en los reportes).', body={'descripcion': 'Proceso de ejemplo (modificado)'}, estado=200)
+r(C, 'Ver proceso', 'GET', '/api/procesos/{{proceso_id}}', TODOS, 'Un proceso; `permisos` indica qué puede hacer el usuario (editar el proceso, crear ediciones, importar).', estado=200)
+r(C, 'Modificar proceso', 'PUT', '/api/procesos/{{proceso_id}}', 'Administrador; Encargado de Departamento en los procesos que creó', 'Sin borrado: se desactiva con `activo: false` (deja de contar en los reportes).', body={'descripcion': 'Proceso de ejemplo (modificado)'}, estado=200)
 
 C = '4. Catálogos'
 r(C, 'Listar factores', 'GET', '/api/factores-riesgo', TODOS, 'Factores de riesgo. Filtro opcional `activo`.', estado=200, guardar_js=guardar('factor_id', 'pm.response.json().data[0].id'))
@@ -116,8 +117,13 @@ r(C, 'Auditoría', 'GET', '/api/auditoria', 'Administrador y Auditor', 'Registro
   query=[('entidad', 'riesgo', True, 'matriz, riesgo, usuario…'), ('entidad_id', '{{riesgo_id}}', True, ''), ('evento', 'actualizado', True, 'creado, actualizado, publicado, exportado, importado, login…'), ('usuario_id', '', True, ''), ('desde', '2026-01-01', True, ''), ('hasta', '2026-12-31', True, '')], estado=200)
 r(C, 'Historial de una edición', 'GET', '/api/matrices/{{matriz_id}}/historial', TODOS, 'Cambios de la edición y de sus riesgos.', estado=200)
 r(C, 'Historial de un riesgo', 'GET', '/api/riesgos/{{riesgo_id}}/historial', TODOS, 'Cambios de un riesgo (incluye factores y seguimientos).', estado=200)
+r(C, 'Historial de movimientos', 'GET', '/api/movimientos', 'Administrador (todos) y Encargados (sus departamentos)', 'Movimientos sobre las matrices de los departamentos del usuario, de todos los usuarios. Filtros: `desde`, `hasta`, `usuario_id`, `departamento_id`, `proceso_id`, `matriz_id`, `evento`, `entidad`, `per_page` (10–100). Sin IP ni navegador; sin valores (ver el detalle).', estado=200, guardar_js=guardar('movimiento_id', 'pm.response.json().data[0].id'))
+r(C, 'Opciones del historial', 'GET', '/api/movimientos/opciones', 'Administrador (todos) y Encargados (sus departamentos)', 'Usuarios, departamentos, procesos, ediciones, operaciones y tipos de registro con movimientos dentro del alcance (para los filtros).', estado=200)
+r(C, 'Detalle de un movimiento', 'GET', '/api/movimientos/{{movimiento_id}}', 'Administrador (todos) y Encargados (sus departamentos)', 'Un movimiento con sus valores anteriores y nuevos. 403 si es de otro departamento; 404 si no pertenece a un área (catálogos, usuarios, sesiones).', estado=200)
 
-C = '9. Mi contraseña'
+C = '9. Mi perfil'
+r(C, 'Cambiar mi nombre', 'PUT', '/api/perfil', 'Cualquier usuario autenticado', 'Solo el nombre propio. Correo, rol, departamentos, estado y contraseña se rechazan (422): los gestiona el Administrador o Seguridad de la cuenta. El ejemplo envía el mismo nombre: no cambia nada.', body={'name': '{{nombre_usuario}}'}, estado=200)
+r(C, 'Estado del recorrido guiado', 'PUT', '/api/perfil/tour', 'Cualquier usuario autenticado', 'Guarda cómo terminó el recorrido guiado: `completado` u `omitido` (null = nunca lo hizo; se le invita al entrar). Se guarda en el servidor: vale en cualquier navegador o equipo. No se audita (preferencia personal). Cambia el estado del usuario de la colección.', body={'estado': 'completado'}, estado=200)
 r(C, 'Cambiar mi contraseña', 'PUT', '/user/password', 'Cualquier usuario autenticado', 'Exige la contraseña actual. El ejemplo pone la misma: no cambia nada.', body={'current_password': '{{password}}', 'password': '{{password}}', 'password_confirmation': '{{password}}'}, estado=200)
 C = '10. Cerrar sesión'
 r(C, 'Cerrar sesión', 'POST', '/logout', 'Cualquier usuario autenticado', 'Termina la sesión.', estado=204)

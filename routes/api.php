@@ -10,7 +10,9 @@ use App\Http\Controllers\Api\FactorRiesgoController;
 use App\Http\Controllers\Api\ImportacionController;
 use App\Http\Controllers\Api\MatrizCalorCeldaController;
 use App\Http\Controllers\Api\MatrizController;
+use App\Http\Controllers\Api\MovimientoController;
 use App\Http\Controllers\Api\NivelRiesgoController;
+use App\Http\Controllers\Api\PerfilController;
 use App\Http\Controllers\Api\PeriodicidadController;
 use App\Http\Controllers\Api\ProcesoController;
 use App\Http\Controllers\Api\ReporteController;
@@ -23,6 +25,9 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth:sanctum', EnsureUserIsActive::class])->group(function () {
     Route::get('/user', CurrentUserController::class);
+    // Mi perfil: solo el nombre propio (la contraseña: PUT /user/password).
+    Route::put('/perfil', [PerfilController::class, 'update']);
+    Route::put('/perfil/tour', [PerfilController::class, 'tour']);
 
     Route::apiResource('users', UserController::class)->except('destroy');
     Route::get('/roles', [RoleController::class, 'index']);
@@ -74,6 +79,12 @@ Route::middleware(['auth:sanctum', EnsureUserIsActive::class])->group(function (
     Route::get('/auditoria', [AuditoriaController::class, 'index']);
     Route::get('/riesgos/{riesgo}/historial', [AuditoriaController::class, 'riesgo']);
     Route::get('/matrices/{matriz}/historial', [AuditoriaController::class, 'matriz']);
+
+    // Historial de movimientos por área: solo lectura, limitado a los
+    // departamentos del usuario (Encargados) o a todos (Administrador).
+    Route::get('/movimientos', [MovimientoController::class, 'index']);
+    Route::get('/movimientos/opciones', [MovimientoController::class, 'opciones']);
+    Route::get('/movimientos/{movimiento}', [MovimientoController::class, 'show'])->whereNumber('movimiento');
 
     // El nombre del parámetro debe coincidir con el argumento del controlador
     // ($factorRiesgo -> factor_riesgo); si no, Laravel inyecta un modelo vacío.

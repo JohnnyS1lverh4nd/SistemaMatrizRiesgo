@@ -4,7 +4,7 @@ Entregable del documento de requisitos ("API documentada y funcional").
 
 | Archivo | Contenido |
 |---|---|
-| `docs/api/SistemaMatrizRiesgo.postman_collection.json` | Colección de Postman: 68 peticiones en 12 carpetas, con descripción, permisos, ejemplos y pruebas |
+| `docs/api/SistemaMatrizRiesgo.postman_collection.json` | Colección de Postman: 73 peticiones en 12 carpetas, con descripción, permisos, ejemplos y pruebas |
 | `docs/api/ejemplo-importacion.xlsx` | Excel de ejemplo (datos ficticios) para la importación |
 | `docs/api/ejemplo-evidencia.pdf` | PDF de ejemplo para adjuntar como evidencia |
 
@@ -62,7 +62,7 @@ Resultado el 15/10/2026 contra los contenedores de prueba: **68 peticiones,
 |---|---|---|---|---|
 | Autenticación | `GET` | `/sanctum/csrf-cookie` | Entrega la cookie XSRF-TOKEN. | Público |
 | Autenticación | `POST` | `/login` | Inicia sesión con correo y contraseña (cookie de sesión). | Público |
-| Autenticación | `GET` | `/api/user` | Datos del usuario con sesión, su rol, departamentos y `meta.sesion_minutos` (inactividad permitida). | Cualquier usuario autenticado |
+| Autenticación | `GET` | `/api/user` | Datos del usuario con sesión (también los de Mi perfil): rol, departamentos, fecha de alta y `meta.sesion_minutos` (inactividad permitida). | Cualquier usuario autenticado |
 | Usuarios y roles | `GET` | `/api/roles` | Lista de roles para asignar a los usuarios. | Administrador |
 | Usuarios y roles | `GET` | `/api/users` | Todos los usuarios (activos e inactivos). | Administrador |
 | Usuarios y roles | `POST` | `/api/users` | Crea un usuario con rol y departamentos. | Administrador |
@@ -73,10 +73,10 @@ Resultado el 15/10/2026 contra los contenedores de prueba: **68 peticiones,
 | Departamentos y procesos | `GET` | `/api/departamentos/{departamento_id}` | Un departamento. | Todos los roles (según su alcance) |
 | Departamentos y procesos | `PUT` | `/api/departamentos/{departamento_id}` | Sin borrado: se desactiva con `activo: false`. | Administrador |
 | Departamentos y procesos | `GET` | `/api/departamentos/{departamento_id}/procesos` | Procesos de un departamento. | Todos los roles (según su alcance) |
-| Departamentos y procesos | `POST` | `/api/departamentos/{departamento_id}/procesos` | Proceso nuevo en un departamento activo. | Administrador |
+| Departamentos y procesos | `POST` | `/api/departamentos/{departamento_id}/procesos` | Proceso nuevo (= matriz nueva) en un departamento activo. | Administrador y Encargado de Departamento (sus departamentos) |
 | Departamentos y procesos | `POST` | `/api/departamentos/{departamento_id}/procesos` | Segundo proceso, sin ediciones, para el ejemplo de importación. | Administrador |
-| Departamentos y procesos | `GET` | `/api/procesos/{proceso_id}` | Un proceso; `permisos` indica qué puede hacer el usuario (crear ediciones, importar). | Todos los roles (según su alcance) |
-| Departamentos y procesos | `PUT` | `/api/procesos/{proceso_id}` | Sin borrado: se desactiva con `activo: false` (deja de contar en los reportes). | Administrador |
+| Departamentos y procesos | `GET` | `/api/procesos/{proceso_id}` | Un proceso; `permisos` indica qué puede hacer el usuario (editar el proceso, crear ediciones, importar). | Todos los roles (según su alcance) |
+| Departamentos y procesos | `PUT` | `/api/procesos/{proceso_id}` | Sin borrado: se desactiva con `activo: false` (deja de contar en los reportes). | Administrador; Encargado de Departamento en los procesos que creó |
 | Catálogos | `GET` | `/api/factores-riesgo` | Factores de riesgo. | Todos los roles (según su alcance) |
 | Catálogos | `POST` | `/api/factores-riesgo` | Factor nuevo. | Administrador |
 | Catálogos | `GET` | `/api/factores-riesgo/{factor_nuevo_id}` | Un factor. | Todos los roles (según su alcance) |
@@ -123,7 +123,12 @@ Resultado el 15/10/2026 contra los contenedores de prueba: **68 peticiones,
 | Reportes y auditoría | `GET` | `/api/auditoria` | Registro de cambios (quién, qué, cuándo), paginado. | Administrador y Auditor |
 | Reportes y auditoría | `GET` | `/api/matrices/{matriz_id}/historial` | Cambios de la edición y de sus riesgos. | Todos los roles (según su alcance) |
 | Reportes y auditoría | `GET` | `/api/riesgos/{riesgo_id}/historial` | Cambios de un riesgo (incluye factores y seguimientos). | Todos los roles (según su alcance) |
-| Mi contraseña | `PUT` | `/user/password` | Exige la contraseña actual. | Cualquier usuario autenticado |
+| Reportes y auditoría | `GET` | `/api/movimientos` | Movimientos sobre las matrices de los departamentos del usuario, de todos los usuarios. | Administrador (todos) y Encargados (sus departamentos) |
+| Reportes y auditoría | `GET` | `/api/movimientos/opciones` | Usuarios, departamentos, procesos, ediciones, operaciones y tipos de registro con movimientos dentro del alcance (para los filtros). | Administrador (todos) y Encargados (sus departamentos) |
+| Reportes y auditoría | `GET` | `/api/movimientos/{movimiento_id}` | Un movimiento con sus valores anteriores y nuevos. | Administrador (todos) y Encargados (sus departamentos) |
+| Mi perfil | `PUT` | `/api/perfil` | Solo el nombre propio. | Cualquier usuario autenticado |
+| Mi perfil | `PUT` | `/api/perfil/tour` | Guarda cómo terminó el recorrido guiado: `completado` u `omitido` (null = nunca lo hizo; se le invita al entrar). | Cualquier usuario autenticado |
+| Mi perfil | `PUT` | `/user/password` | Exige la contraseña actual. | Cualquier usuario autenticado |
 | Cerrar sesión | `POST` | `/logout` | Termina la sesión. | Cualquier usuario autenticado |
 | Cerrar sesión | `GET` | `/api/user` | Sin sesión, la API responde 401. | Público |
 | Recuperar contraseña (sin sesión) | `POST` | `/forgot-password` | Solo sin sesión (con sesión, Fortify redirige). | Público |
